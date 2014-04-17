@@ -58,7 +58,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
         public static class DescriptorImpl extends Descriptor<ManagedWindowsServiceAccount> {
             @Override
             public String getDisplayName() {
-                return "Use Local System User";
+                return Messages.ManagedWindowsServiceAccount_LocalSystem_DisplayName();
             }
         }
     }
@@ -79,7 +79,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
         public static class DescriptorImpl extends Descriptor<ManagedWindowsServiceAccount> {
             @Override
             public String getDisplayName() {
-                return "Use Administrator account given above";
+                return Messages.ManagedWindowsServiceAccount_Administrator_DisplayName();
             }
         }
     }
@@ -106,7 +106,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
         public static class DescriptorImpl extends Descriptor<ManagedWindowsServiceAccount> {
             @Override
             public String getDisplayName() {
-                return "Log on using a different account";
+                return Messages.ManagedWindowsServiceAccount_AnotherUser_DisplayName();
             }
         }
     }
