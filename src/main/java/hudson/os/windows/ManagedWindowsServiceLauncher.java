@@ -100,18 +100,6 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      */
     private ManagedWindowsServiceAccount account;
     
-    public static class LogOnOption {
-        public final String value;
-
-        public final AccountInfo logOn;
-
-        @DataBoundConstructor
-        public LogOnOption(String value, AccountInfo logOn) {
-            this.value = value;
-            this.logOn = logOn;
-        }
-    }
-
     public static class AccountInfo extends AbstractDescribableImpl<AccountInfo> {
         public final String userName;
 
