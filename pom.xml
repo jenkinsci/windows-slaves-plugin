@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.554.3</version>
+        <version>1.618-SNAPSHOT</version>
     </parent>
     <artifactId>windows-slaves</artifactId>
     <version>1.2-SNAPSHOT</version>
@@ -29,7 +29,43 @@
             <artifactId>windows-remote-command</artifactId>
             <version>1.4</version>
         </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>credentials</artifactId>
+            <version>1.22</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.main</groupId>
+            <artifactId>jenkins-test-harness</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>${project.version}</artifactId>
+                </exclusion>
+                <!-- can be required once we depend on a non-SNAPSHOT jenkins parent -->
+                <exclusion>
+                	<artifactId>SECURITY-144-compat</artifactId>
+                	<groupId>org.jenkins-ci</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jenkins-ci.tools</groupId>
+                <artifactId>maven-hpi-plugin</artifactId>
+                <version>1.106</version>
+                <configuration>
+                    <systemProperties>
+                        <hudson.bundled.plugins>${basedir}/work/plugins/${project.artifactId}.hpl</hudson.bundled.plugins>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>

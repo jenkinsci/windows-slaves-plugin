@@ -24,9 +24,15 @@
 
 package hudson.os.windows;
 
+import com.cloudbees.plugins.credentials.*;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.slaves.DumbSlave;
 import hudson.util.Secret;
+import jenkins.model.Jenkins;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -37,10 +43,31 @@ public class ManagedWindowsServiceLauncherTest {
 
     @Test public void configRoundTrip() throws Exception {
         assertTrue(r.jenkins.getPluginManager().getPlugin("windows-slaves").isActive()); // verifying JENKINS-28816
+        StandardUsernamePasswordCredentials adminCredentials = new UsernamePasswordCredentialsImpl(CredentialsScope.SYSTEM, null, "User to launch slave", "jenkins", "jEnKiNs");
+        StandardUsernamePasswordCredentials serviceCredentials = new UsernamePasswordCredentialsImpl(CredentialsScope.SYSTEM, null, "Service user", "bob", "s3cr3t");
+        CredentialsStore credentialsStore = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
+        credentialsStore.addCredentials(Domain.global(), adminCredentials);
+        credentialsStore.addCredentials(Domain.global(), serviceCredentials);
+        DumbSlave s = r.createSlave();
+        ManagedWindowsServiceLauncher launcher = new ManagedWindowsServiceLauncher(adminCredentials, "nowhere.net", new ManagedWindowsServiceAccount.AnotherUser(serviceCredentials), "-Xmx128m", "C:\\stuff\\java");
+        s.setLauncher(launcher);
+        r.assertEqualDataBoundBeans(launcher, r.configRoundtrip(s).getLauncher());
+    }
+
+    @Test public void testMigration() throws Exception {
         DumbSlave s = r.createSlave();
         ManagedWindowsServiceLauncher launcher = new ManagedWindowsServiceLauncher("jenkins", "jEnKiNs", "nowhere.net", new ManagedWindowsServiceAccount.AnotherUser("bob", Secret.fromString("s3cr3t")), "-Xmx128m", "C:\\stuff\\java");
         s.setLauncher(launcher);
-        r.assertEqualDataBoundBeans(launcher, r.configRoundtrip(s).getLauncher());
+        ManagedWindowsServiceLauncher launcherAfterRoundTrip = (ManagedWindowsServiceLauncher) r.configRoundtrip(s).getLauncher();
+
+        StandardUsernamePasswordCredentials adminCredentials = ManagedWindowsServiceLauncher.retrieveExistingCredentials("jenkins", Secret.fromString("jEnKiNs"));
+        assertNotNull(adminCredentials);
+        assertEquals(adminCredentials.getId(), launcherAfterRoundTrip.getCredentialsId());
+
+        StandardUsernamePasswordCredentials serviceCredentials = ManagedWindowsServiceLauncher.retrieveExistingCredentials("bob", Secret.fromString("s3cr3t"));
+        assertNotNull(serviceCredentials);
+        assertTrue(launcherAfterRoundTrip.getAccount() instanceof ManagedWindowsServiceAccount.AnotherUser);
+        assertEquals(serviceCredentials.getId(), ((ManagedWindowsServiceAccount.AnotherUser) launcherAfterRoundTrip.getAccount()).getCredentialsId());
     }
 
 }

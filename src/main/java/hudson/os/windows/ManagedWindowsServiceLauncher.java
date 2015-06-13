@@ -23,11 +23,21 @@
  */
 package hudson.os.windows;
 
+import static com.cloudbees.plugins.credentials.CredentialsMatchers.allOf;
+import static com.cloudbees.plugins.credentials.CredentialsMatchers.withUsername;
 import static hudson.Util.copyStreamAndClose;
 import static org.jvnet.hudson.wmi.Win32Service.Win32OwnProcess;
 
+import com.cloudbees.plugins.credentials.*;
+import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.*;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.RelativePath;
 import hudson.Util;
 import hudson.model.*;
 import hudson.os.windows.ManagedWindowsServiceAccount.AnotherUser;
@@ -36,12 +46,15 @@ import hudson.remoting.Channel;
 import hudson.remoting.Channel.Listener;
 import hudson.remoting.SocketInputStream;
 import hudson.remoting.SocketOutputStream;
+import hudson.security.ACL;
+import hudson.security.AccessControlled;
 import hudson.slaves.*;
 import hudson.tools.JDKInstaller;
 import hudson.tools.JDKInstaller.CPU;
 import hudson.tools.JDKInstaller.Platform;
 import hudson.util.DescribableList;
 import hudson.util.IOUtils;
+import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import hudson.util.jna.DotNet;
 
@@ -59,6 +72,8 @@ import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 import jenkins.model.Jenkins;
 
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.lang.StringUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -70,7 +85,9 @@ import org.jvnet.hudson.remcom.WindowsRemoteProcessLauncher;
 import org.jvnet.hudson.wmi.SWbemServices;
 import org.jvnet.hudson.wmi.WMI;
 import org.jvnet.hudson.wmi.Win32Service;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 /**
  * Windows slave installed/managed as a service entirely remotely
@@ -79,12 +96,26 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
+    public static final SchemeRequirement WINDOWS_SCHEME = new SchemeRequirement("windows");
+
     /**
      * "[DOMAIN\\]USERNAME" to follow the Windows convention.
      */
-    public final String userName;
-    
-    public final Secret password;
+    @Deprecated
+    public final transient String userName;
+
+    @Deprecated
+    public final transient Secret password;
+
+    /**
+     * The id of the credentials to use
+     */
+    private String credentialsId;
+
+    /**
+     * Transient stash of the credentials to use, mostly just for providing floating user object.
+     */
+    private transient StandardUsernamePasswordCredentials credentials;
     
     public final String vmargs;
 
@@ -101,14 +132,37 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     private ManagedWindowsServiceAccount account;
     
     public static class AccountInfo extends AbstractDescribableImpl<AccountInfo> {
-        public final String userName;
+        @Deprecated
+        public final transient String userName;
+        @Deprecated
+        public final transient Secret password;
 
-        public final Secret password;
+        public String credentialsId;
+
+        private transient StandardUsernamePasswordCredentials credentials;
 
         @DataBoundConstructor
+        public AccountInfo(StandardUsernamePasswordCredentials credentials) {
+            this.credentials = credentials;
+            this.credentialsId = credentials == null ? null : credentials.getId();
+            this.userName = null;
+            this.password = null;
+        }
+
+        /**
+         * @param userName The username to connect as.
+         * @param password The password to connect with.
+         * @deprecated Use the {@link StandardUsernamePasswordCredentials} based version.
+         */
+        @Deprecated
         public AccountInfo(String userName, String password) {
-            this.userName = userName;
-            this.password = Secret.fromString(password);
+            this(upgrade(userName, Secret.fromString(password), null));
+        }
+
+        public StandardUsernamePasswordCredentials getCredentials() {
+            this.credentials = lookupCredentials(this.credentials, this.credentialsId, this.userName, this.password, null);
+            this.credentialsId = this.credentials == null ? null : this.credentials.getId();
+            return credentials;
         }
 
         @Extension
@@ -125,26 +179,73 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      * @since 1.419
      */
     public final String host;
-    
+
+    /**
+     * @see ManagedWindowsServiceLauncher#ManagedWindowsServiceLauncher(StandardUsernamePasswordCredentials, String, ManagedWindowsServiceAccount, String, String)
+     */
+    @Deprecated
     public ManagedWindowsServiceLauncher(String userName, String password) {
         this (userName, password, null);
     }
 
+    /**
+     * @see ManagedWindowsServiceLauncher#ManagedWindowsServiceLauncher(StandardUsernamePasswordCredentials, String, ManagedWindowsServiceAccount, String, String)
+     */
+    @Deprecated
     public ManagedWindowsServiceLauncher(String userName, String password, String host) {
         this(userName, password, host, null, null);
     }
 
+    /**
+     * @see ManagedWindowsServiceLauncher#ManagedWindowsServiceLauncher(StandardUsernamePasswordCredentials, String, ManagedWindowsServiceAccount, String, String)
+     */
+    @Deprecated
     public ManagedWindowsServiceLauncher(String userName, String password, String host, AccountInfo account) {
         this(userName,password,host,account==null ? new LocalSystem() : new AnotherUser(account.userName,account.password), null);
     }
-    
+
+    /**
+     * @see ManagedWindowsServiceLauncher#ManagedWindowsServiceLauncher(StandardUsernamePasswordCredentials, String, ManagedWindowsServiceAccount, String, String)
+     */
+    @Deprecated
     public ManagedWindowsServiceLauncher(String userName, String password, String host, ManagedWindowsServiceAccount account, String vmargs) {
         this(userName, password, host, account, vmargs, "");
     }
-    @DataBoundConstructor
+
+    /**
+     * Constructor ManagedWindowsServiceLauncher creates a new ManagedWindowsServiceLauncher instance.
+     *
+     * @param userName The username to connect as.
+     * @param password The password to connect with.
+     * @param host The host to connect to
+     * @param account The account to use to control the service
+     * @param vmargs The arguments passed to the VM when starting it.
+     * @param javaPath Path to the host jdk installation. If <code>null</code> the jdk will be auto detected or installed by the {@link JDKInstaller}
+     * @deprecated use the {@link StandardUsernamePasswordCredentials} based version
+     */
+    @Deprecated
     public ManagedWindowsServiceLauncher(String userName, String password, String host, ManagedWindowsServiceAccount account, String vmargs, String javaPath) {
-        this.userName = userName;
-        this.password = Secret.fromString(password);
+        this(upgrade(userName, Secret.fromString(password), Util.fixEmptyAndTrim(host)), host, account, vmargs, javaPath);
+    }
+
+    @DataBoundConstructor
+    public ManagedWindowsServiceLauncher(String credentialsId, String host, ManagedWindowsServiceAccount account, String vmargs, String javaPath) {
+        this(lookupSystemCredentials(credentialsId), host, account, vmargs, javaPath);
+    }
+
+    /**
+     * Constructor ManagedWindowsServiceLauncher creates a new ManagedWindowsServiceLauncher instance.
+     * @param credentials The credentials to connect as
+     * @param host The host to connect to
+     * @param account The account to use to control the service
+     * @param vmargs The arguments passed to the VM when starting it.
+     * @param javaPath Path to the host jdk installation. If <code>null</code> the jdk will be auto detected or installed by the {@link JDKInstaller}
+     */
+    public ManagedWindowsServiceLauncher(StandardUsernamePasswordCredentials credentials, String host, ManagedWindowsServiceAccount account, String vmargs, String javaPath) {
+        this.userName = null;
+        this.password = null;
+        this.credentials = credentials;
+        this.credentialsId = credentials == null ? null : credentials.getId();
         this.vmargs = Util.fixEmptyAndTrim(vmargs);
         this.javaPath = Util.fixEmptyAndTrim(javaPath);
         this.host = Util.fixEmptyAndTrim(host);
@@ -158,11 +259,31 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return this;
     }
 
+    public String getCredentialsId() {
+        if (credentialsId == null && (userName != null || password != null)) {
+            initCredentials();
+        }
+        return this.credentialsId;
+    }
+
+    public StandardUsernamePasswordCredentials getCredentials() {
+        initCredentials();
+        return this.credentials;
+    }
+
+    private void initCredentials() {
+        this.credentials = lookupCredentials(this.credentials, this.credentialsId, this.userName, this.password, this.host);
+        this.credentialsId = this.credentials == null ? null : this.credentials.getId();
+    }
+
     private JIDefaultAuthInfoImpl createAuth() {
+        StandardUsernamePasswordCredentials credentials = getCredentials();
+        String userName = credentials.getUsername();
+        String password = Secret.toString(credentials.getPassword());
         String[] tokens = userName.split("\\\\");
         if(tokens.length==2)
-            return new JIDefaultAuthInfoImpl(tokens[0], tokens[1], Secret.toString(password));
-        return new JIDefaultAuthInfoImpl("", userName, Secret.toString(password));
+            return new JIDefaultAuthInfoImpl(tokens[0], tokens[1], password);
+        return new JIDefaultAuthInfoImpl("", userName, password);
     }
 
     private NtlmPasswordAuthentication createSmbAuth() {
@@ -307,6 +428,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                         path+"\\jenkins-slave.exe",
                         Win32OwnProcess, 0, "Manual", true);
                 } else {
+                    StandardUsernamePasswordCredentials logOnCredentials = logOn.getCredentials();
                     r = svc.Create(
                         id,
                         dom.selectSingleNode("/service/name").getText()+" at "+path,
@@ -315,8 +437,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                         0,
                         "Manual",
                         false, // When using a different user, it isn't possible to interact
-                        logOn.userName,
-                        Secret.toString(logOn.password),
+                        logOnCredentials.getUsername(),
+                        Secret.toString(logOnCredentials.getPassword()),
                         null, null, null);
 
                 }
@@ -507,11 +629,97 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         public String getDisplayName() {
             return Messages.ManagedWindowsServiceLauncher_DisplayName();
         }
+
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context,
+                                                     @QueryParameter String host,
+                                                     @RelativePath("..") @QueryParameter String name) {
+            if (host == null) {
+                host = name;
+            }
+            if (!(context instanceof AccessControlled ? (AccessControlled) context : Jenkins.getInstance()).hasPermission(Computer.CONFIGURE)) {
+                return new ListBoxModel();
+            }
+            return new StandardUsernameListBoxModel().withMatching(CredentialsMatchers.always(),
+                    CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, context,
+                            ACL.SYSTEM, WINDOWS_SCHEME, new HostnameRequirement(host)));
+        }
     }
 
     private static final Logger JINTEROP_LOGGER = Logger.getLogger("org.jinterop");
 
     static {
         JINTEROP_LOGGER.setLevel(Level.WARNING);
+    }
+
+    public static StandardUsernamePasswordCredentials lookupSystemCredentials(String credentialsId) {
+        return CredentialsMatchers.firstOrNull(
+                CredentialsProvider
+                        .lookupCredentials(StandardUsernamePasswordCredentials.class, Jenkins.getInstance(), ACL.SYSTEM,
+                                WINDOWS_SCHEME),
+                CredentialsMatchers.withId(credentialsId)
+        );
+    }
+
+    static StandardUsernamePasswordCredentials lookupCredentials(StandardUsernamePasswordCredentials credentials, String credentialsId, String userName, Secret password, String host) {
+        credentialsId = credentialsId == null
+                ? (credentials == null ? null : credentials.getId())
+                : credentialsId;
+        try {
+            // only ever want from the system
+            // lookup every time so that we always have the latest
+            credentials = lookupSystemCredentials(credentialsId);
+            if (credentials != null) {
+                return credentials;
+            }
+        } catch (Throwable t) {
+            // ignore
+        }
+        if (credentials == null) {
+            if (credentialsId == null && (userName != null || password != null)) {
+                credentials = upgrade(userName, password, host);
+            }
+        }
+
+        return credentials;
+    }
+
+    static synchronized StandardUsernamePasswordCredentials upgrade(String username, Secret password, String description) {
+        StandardUsernamePasswordCredentials u = retrieveExistingCredentials(username, password);
+        if (u != null) return u;
+
+        // no matching, so make our own.
+        u = new UsernamePasswordCredentialsImpl(CredentialsScope.SYSTEM, null, description, username, password == null ? null : password.getEncryptedValue());
+
+        final SecurityContext securityContext = ACL.impersonate(ACL.SYSTEM);
+        try {
+            CredentialsStore s = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
+            try {
+                s.addCredentials(Domain.global(), u);
+                return u;
+            } catch (IOException e) {
+                // ignore
+            }
+        } finally {
+            SecurityContextHolder.setContext(securityContext);
+        }
+        return u;
+    }
+
+    @VisibleForTesting
+    static StandardUsernamePasswordCredentials retrieveExistingCredentials(String username, final Secret password) {
+        return CredentialsMatchers.firstOrNull(CredentialsProvider
+                .lookupCredentials(StandardUsernamePasswordCredentials.class, Jenkins.getInstance(), ACL.SYSTEM,
+                        WINDOWS_SCHEME), allOf(
+                withUsername(username),
+                new CredentialsMatcher() {
+                    public boolean matches(@NonNull Credentials item) {
+                        if (item instanceof StandardUsernamePasswordCredentials
+                                && password != null
+                                && StandardUsernamePasswordCredentials.class.cast(item).getPassword().equals(password)) {
+                            return true;
+                        }
+                        return false;
+                    }
+                }));
     }
 }

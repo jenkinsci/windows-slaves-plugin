@@ -23,13 +23,29 @@
  */
 package hudson.os.windows;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.Extension;
 import hudson.ExtensionPoint;
+import hudson.RelativePath;
 import hudson.model.AbstractDescribableImpl;
+import hudson.model.Computer;
 import hudson.model.Descriptor;
+import hudson.model.ItemGroup;
 import hudson.os.windows.ManagedWindowsServiceLauncher.AccountInfo;
+import hudson.security.ACL;
+import hudson.security.AccessControlled;
+import hudson.util.ListBoxModel;
 import hudson.util.Secret;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 /**
  * Encapsulates how to login (a part of {@link ManagedWindowsServiceLauncher}).
@@ -72,7 +88,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
 
         @Override
         public AccountInfo getAccount(ManagedWindowsServiceLauncher launcher) {
-            return new AccountInfo(launcher.userName,Secret.toString(launcher.password));
+            return new AccountInfo(launcher.getCredentials());
         }
 
         @Extension
@@ -88,18 +104,63 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
      * Logs in with a separate user.
      */
     public static final class AnotherUser extends ManagedWindowsServiceAccount {
-        public final String userName;
-        public final Secret password;
+        @Deprecated
+        public final transient String userName;
+        @Deprecated
+        public final transient Secret password;
+        private String credentialsId;
+        private transient StandardUsernamePasswordCredentials credentials;
 
         @DataBoundConstructor
+        public AnotherUser(String credentialsId) {
+            this(ManagedWindowsServiceLauncher.lookupSystemCredentials(credentialsId));
+        }
+
+        /**
+         * Constructor AnotherUser creates a AnotherUser instance.
+         *
+         * @param credentials The credentials to connect as.
+         */
+        public AnotherUser(StandardUsernamePasswordCredentials credentials) {
+            this.userName = null;
+            this.password = null;
+            this.credentials = credentials;
+            this.credentialsId = credentials == null ? null : credentials.getId();
+        }
+
+        /**
+         * Constructor AnotherUser creates a AnotherUser instance.
+         *
+         * @param userName The username to connect as
+         * @param password The password to connect with.
+         * @deprecated use the {@link com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials} based version.
+         */
+        @Deprecated
         public AnotherUser(String userName, Secret password) {
             this.userName = userName;
             this.password = password;
         }
 
+        public String getCredentialsId() {
+            if (credentialsId == null && (userName != null || password != null)) {
+                initCredentials();
+            }
+            return credentialsId;
+        }
+
+        public StandardUsernamePasswordCredentials getCredentials() {
+            initCredentials();
+            return this.credentials;
+        }
+
+        private void initCredentials() {
+            this.credentials = ManagedWindowsServiceLauncher.lookupCredentials(this.credentials, this.credentialsId, userName, password, null);
+            this.credentialsId = this.credentials == null ? null : this.credentials.getId();
+        }
+
         @Override
         public AccountInfo getAccount(ManagedWindowsServiceLauncher launcher) {
-            return new AccountInfo(userName,Secret.toString(password));
+            return new AccountInfo(getCredentials());
         }
 
         @Extension
@@ -107,6 +168,13 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
             @Override
             public String getDisplayName() {
                 return Messages.ManagedWindowsServiceAccount_AnotherUser_DisplayName();
+            }
+
+            public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context,
+                                                         @RelativePath("..") @QueryParameter String host,
+                                                         @RelativePath("../..") @QueryParameter String name) {
+                ManagedWindowsServiceLauncher.DescriptorImpl launcherDescriptor = (ManagedWindowsServiceLauncher.DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(ManagedWindowsServiceLauncher.class);
+                return launcherDescriptor.doFillCredentialsIdItems(context, host, name);
             }
         }
     }

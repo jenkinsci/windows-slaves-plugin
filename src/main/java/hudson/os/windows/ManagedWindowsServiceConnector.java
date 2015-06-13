@@ -1,5 +1,6 @@
 package hudson.os.windows;
 
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Extension;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerConnector;
@@ -17,19 +18,38 @@ public class ManagedWindowsServiceConnector extends ComputerConnector {
     /**
      * "[DOMAIN\\]USERNAME" to follow the Windows convention.
      */
-    public final String userName;
+    @Deprecated
+    public final transient String userName;
 
-    public final Secret password;
+    @Deprecated
+    public final transient Secret password;
+
+    public String credentialsId;
+
+    private transient StandardUsernamePasswordCredentials credentials;
+
+    @Deprecated
+    public ManagedWindowsServiceConnector(String userName, String password) {
+        this(ManagedWindowsServiceLauncher.upgrade(userName, Secret.fromString(password), null));
+    }
 
     @DataBoundConstructor
-    public ManagedWindowsServiceConnector(String userName, String password) {
-        this.userName = userName;
-        this.password = Secret.fromString(password);
+    public ManagedWindowsServiceConnector(StandardUsernamePasswordCredentials credentials) {
+        this.userName = null;
+        this.password = null;
+        this.credentials = credentials;
+        this.credentialsId = credentials == null ? null : credentials.getId();
+    }
+
+    public StandardUsernamePasswordCredentials getCredentials() {
+        this.credentials = ManagedWindowsServiceLauncher.lookupCredentials(this.credentials, this.credentialsId, this.userName, this.password, null);
+        this.credentialsId = this.credentials == null ? null : this.credentials.getId();
+        return credentials;
     }
 
     @Override
     public ManagedWindowsServiceLauncher launch(final String hostName, TaskListener listener) throws IOException, InterruptedException {
-        return new ManagedWindowsServiceLauncher(userName,Secret.toString(password),hostName);
+        return new ManagedWindowsServiceLauncher(credentials, hostName, null, null, null);
     }
 
     @Extension
