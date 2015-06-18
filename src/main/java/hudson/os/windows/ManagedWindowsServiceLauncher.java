@@ -509,7 +509,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      * @return the formatted current time stamp.
      */
     protected String getTimestamp() {
-        return String.format("[%1$tD %1$tT]", new Date());
+        return String.format("[%1$tF %1$tT]", new Date());
     }
 
     @Extension
