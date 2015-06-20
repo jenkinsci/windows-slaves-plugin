@@ -361,6 +361,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 });
             //destroy session to free the socket	
             JISession.destroySession(session);
+        } catch (UnknownHostException e) {
+            listener.error(Messages.ManagedWindowsServiceLauncher_UnknownHost(getTimestamp(), e.getMessage()));
         } catch (SmbException e) {
             e.printStackTrace(listener.error(e.getMessage()));
         } catch (JIException e) {
