@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.618-SNAPSHOT</version>
+        <version>1.618</version>
     </parent>
     <artifactId>windows-slaves</artifactId>
     <version>1.2-SNAPSHOT</version>
@@ -44,7 +44,7 @@
                     <groupId>${project.groupId}</groupId>
                     <artifactId>${project.version}</artifactId>
                 </exclusion>
-                <!-- can be required once we depend on a non-SNAPSHOT jenkins parent -->
+                <!-- required because I get class signing verification issues if it is there -->
                 <exclusion>
                 	<artifactId>SECURITY-144-compat</artifactId>
                 	<groupId>org.jenkins-ci</groupId>
