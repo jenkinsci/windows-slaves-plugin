@@ -23,22 +23,17 @@
  */
 package hudson.os.windows;
 
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.allOf;
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.withUsername;
-import static hudson.Util.copyStreamAndClose;
-import static org.jvnet.hudson.wmi.Win32Service.Win32OwnProcess;
-
 import com.cloudbees.plugins.credentials.*;
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.*;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.cloudbees.plugins.credentials.domains.SchemeRequirement;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.RelativePath;
-import hudson.Util;
+import hudson.*;
 import hudson.model.*;
 import hudson.os.windows.ManagedWindowsServiceAccount.AnotherUser;
 import hudson.os.windows.ManagedWindowsServiceAccount.LocalSystem;
@@ -57,21 +52,10 @@ import hudson.util.IOUtils;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import hudson.util.jna.DotNet;
-
-import java.io.*;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 import jenkins.model.Jenkins;
-
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.lang.StringUtils;
@@ -88,6 +72,16 @@ import org.jvnet.hudson.wmi.Win32Service;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+
+import java.io.*;
+import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static com.cloudbees.plugins.credentials.CredentialsMatchers.allOf;
+import static com.cloudbees.plugins.credentials.CredentialsMatchers.withUsername;
+import static hudson.Util.copyStreamAndClose;
+import static org.jvnet.hudson.wmi.Win32Service.Win32OwnProcess;
 
 /**
  * Windows slave installed/managed as a service entirely remotely
@@ -110,11 +104,13 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     /**
      * The id of the credentials to use
      */
+    @CheckForNull
     private String credentialsId;
 
     /**
      * Transient stash of the credentials to use, mostly just for providing floating user object.
      */
+    @CheckForNull
     private transient StandardUsernamePasswordCredentials credentials;
     
     public final String vmargs;
@@ -259,14 +255,14 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return this;
     }
 
-    public String getCredentialsId() {
+    public @CheckForNull String getCredentialsId() {
         if (credentialsId == null && (userName != null || password != null)) {
             initCredentials();
         }
         return this.credentialsId;
     }
 
-    public StandardUsernamePasswordCredentials getCredentials() {
+    public @CheckForNull StandardUsernamePasswordCredentials getCredentials() {
         initCredentials();
         return this.credentials;
     }
@@ -276,8 +272,11 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         this.credentialsId = this.credentials == null ? null : this.credentials.getId();
     }
 
-    private JIDefaultAuthInfoImpl createAuth() {
+    private JIDefaultAuthInfoImpl createAuth() throws IOException {
         StandardUsernamePasswordCredentials credentials = getCredentials();
+        if (credentials == null) {
+            throw new AbortException("No credentials could be resolved. Please check the node configuration.");
+        }
         String userName = credentials.getUsername();
         String password = Secret.toString(credentials.getPassword());
         String[] tokens = userName.split("\\\\");
@@ -286,7 +285,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return new JIDefaultAuthInfoImpl("", userName, password);
     }
 
-    private NtlmPasswordAuthentication createSmbAuth() {
+    private NtlmPasswordAuthentication createSmbAuth() throws IOException {
         JIDefaultAuthInfoImpl auth = createAuth();
         return new NtlmPasswordAuthentication(auth.getDomain(), auth.getUserName(), auth.getPassword());
     }
