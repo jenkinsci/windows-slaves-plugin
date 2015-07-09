@@ -305,7 +305,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             final PrintStream logger = listener.getLogger();
             final String name = determineHost(computer);
 
-            logger.println(Messages.ManagedWindowsServiceLauncher_ConnectingTo(name));
+            logger.println(Messages.ManagedWindowsServiceLauncher_ConnectingTo(getTimestamp(), name));
 
             InetAddress host = InetAddress.getByName(name);
 
@@ -396,15 +396,15 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             String id = generateServiceId(path);
             Win32Service slaveService = services.getService(id);
             if(slaveService==null) {
-                logger.println(Messages.ManagedWindowsServiceLauncher_InstallingSlaveService());
+                logger.println(Messages.ManagedWindowsServiceLauncher_InstallingSlaveService(getTimestamp()));
                 if(!DotNet.isInstalled(2,0, name, auth)) {
                     // abort the launch
-                    logger.println(Messages.ManagedWindowsServiceLauncher_DotNetRequired());
+                    logger.println(Messages.ManagedWindowsServiceLauncher_DotNetRequired(getTimestamp()));
                     return;
                 }
 
                 // copy exe
-                logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveExe());
+                logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveExe(getTimestamp()));
                 copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe").openStream(), new SmbFile(remoteRoot,"jenkins-slave.exe").getOutputStream());
 
                 copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe.config").openStream(), new SmbFile(remoteRoot,"jenkins-slave.exe.config").getOutputStream());
@@ -415,7 +415,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 String xml = createAndCopyJenkinsSlaveXml(java, id, logger, remoteRoot);
 
                 // install it as a service
-                logger.println(Messages.ManagedWindowsServiceLauncher_RegisteringService());
+                logger.println(Messages.ManagedWindowsServiceLauncher_RegisteringService(getTimestamp()));
                 Document dom = new SAXReader().read(new StringReader(xml));
                 Win32Service svc = services.Get("Win32_Service").cast(Win32Service.class);
                 int r;
@@ -451,15 +451,15 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 copySlaveJar(logger, remoteRoot);
             }
 
-            logger.println(Messages.ManagedWindowsServiceLauncher_StartingService());
+            logger.println(Messages.ManagedWindowsServiceLauncher_StartingService(getTimestamp()));
             slaveService.start();
 
             // wait until we see the port.txt, but don't do so forever
-            logger.println(Messages.ManagedWindowsServiceLauncher_WaitingForService());
+            logger.println(Messages.ManagedWindowsServiceLauncher_WaitingForService(getTimestamp()));
             SmbFile portFile = new SmbFile(remoteRoot, "port.txt");
             for( int i=0; !portFile.exists(); i++ ) {
                 if(i>=30) {
-                    listener.error(Messages.ManagedWindowsServiceLauncher_ServiceDidntRespond());
+                    listener.error(Messages.ManagedWindowsServiceLauncher_ServiceDidntRespond(getTimestamp()));
                     return;
                 }
                 Thread.sleep(1000);
@@ -467,7 +467,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             int p = readSmbFile(portFile);
 
             // connect
-            logger.println(Messages.ManagedWindowsServiceLauncher_ConnectingToPort(p));
+            logger.println(Messages.ManagedWindowsServiceLauncher_ConnectingToPort(getTimestamp(),p));
             final Socket s = new Socket(name,p);
 
             // ready
@@ -481,12 +481,14 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 });
             //destroy session to free the socket	
             JISession.destroySession(session);
+        } catch (UnknownHostException e) {
+            listener.error(Messages.ManagedWindowsServiceLauncher_UnknownHost(getTimestamp(), e.getMessage()));
         } catch (SmbException e) {
             e.printStackTrace(listener.error(e.getMessage()));
         } catch (JIException e) {
             if(e.getErrorCode()==5)
                 // access denied error
-                e.printStackTrace(listener.error(Messages.ManagedWindowsServiceLauncher_AccessDenied()));
+                e.printStackTrace(listener.error(Messages.ManagedWindowsServiceLauncher_AccessDenied(getTimestamp())));
             else
                 e.printStackTrace(listener.error(e.getMessage()));
         } catch (DocumentException e) {
@@ -561,7 +563,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
     
     private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
-        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml());
+        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
         String xml = generateSlaveXml(serviceId,
                 java + "w.exe", vmargs, "-tcp %BASE%\\port.txt");
         copyStreamAndClose(new ByteArrayInputStream(xml.getBytes("UTF-8")), new SmbFile(remoteRoot,"jenkins-slave.xml").getOutputStream());
@@ -570,7 +572,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
     private void copySlaveJar(PrintStream logger, SmbFile remoteRoot) throws IOException {
         // copy slave.jar
-        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveJar());
+        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveJar(getTimestamp()));
         copyStreamAndClose(Jenkins.getInstance().getJnlpJars("slave.jar").getURL().openStream(), new SmbFile(remoteRoot,"slave.jar").getOutputStream());
     }
 
@@ -594,9 +596,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             String id = generateServiceId(computer.getNode().getRemoteFS());
             Win32Service slaveService = services.getService(id);
             if(slaveService!=null) {
-                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService());
+                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
                 slaveService.StopService();
-                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService());
+                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
                 slaveService.Delete();
             }
             //destroy session to free the socket	
@@ -621,6 +623,15 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         xml = xml.replace("@VMARGS@", StringUtils.defaultString(vmargs));
         xml = xml.replace("@ARGS@", args);
         return xml;
+    }
+
+    /**
+     * Gets the formatted current time stamp.
+     *
+     * @return the formatted current time stamp.
+     */
+    protected String getTimestamp() {
+        return String.format("[%1$tF %1$tT]", new Date());
     }
 
     @Extension
