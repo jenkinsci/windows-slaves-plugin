@@ -1,3 +1,4 @@
+
 /*
  * The MIT License
  *
@@ -91,7 +92,7 @@ import static org.jvnet.hudson.wmi.Win32Service.Win32OwnProcess;
  */
 public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
-    public static final SchemeRequirement WINDOWS_SCHEME = new SchemeRequirement("windows");
+    public static final SchemeRequirement SMB_SCHEME = new SchemeRequirement("smb");
 
     /**
      * "[DOMAIN\\]USERNAME" to follow the Windows convention.
@@ -652,7 +653,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             }
             return new StandardUsernameListBoxModel().withMatching(CredentialsMatchers.always(),
                     CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, context,
-                            ACL.SYSTEM, WINDOWS_SCHEME, new HostnameRequirement(host)));
+                            ACL.SYSTEM, SMB_SCHEME, new HostnameRequirement(host)));
         }
     }
 
@@ -666,7 +667,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return CredentialsMatchers.firstOrNull(
                 CredentialsProvider
                         .lookupCredentials(StandardUsernamePasswordCredentials.class, Jenkins.getInstance(), ACL.SYSTEM,
-                                WINDOWS_SCHEME),
+                                SMB_SCHEME),
                 CredentialsMatchers.withId(credentialsId)
         );
     }
@@ -720,7 +721,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     static StandardUsernamePasswordCredentials retrieveExistingCredentials(String username, final Secret password) {
         return CredentialsMatchers.firstOrNull(CredentialsProvider
                 .lookupCredentials(StandardUsernamePasswordCredentials.class, Jenkins.getInstance(), ACL.SYSTEM,
-                        WINDOWS_SCHEME), allOf(
+                        SMB_SCHEME), allOf(
                 withUsername(username),
                 new CredentialsMatcher() {
                     public boolean matches(@NonNull Credentials item) {
