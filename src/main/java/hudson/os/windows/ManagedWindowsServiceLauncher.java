@@ -73,6 +73,8 @@ import org.jvnet.hudson.wmi.WMI;
 import org.jvnet.hudson.wmi.Win32Service;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Windows slave installed/managed as a service entirely remotely
  *
@@ -385,6 +387,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
 
     // -- duplicates code from ssh-slaves-plugin
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "https://github.com/jenkinsci/jenkins/pull/2094")
     private EnvVars getEnvVars(SlaveComputer computer) {
         final EnvVars global = getEnvVars(Jenkins.getInstance());
 
@@ -444,6 +447,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
     
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "https://github.com/jenkinsci/jenkins/pull/2094")
     private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
         String xml = generateSlaveXml(serviceId,
@@ -452,6 +456,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return xml;
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "https://github.com/jenkinsci/jenkins/pull/2094")
     private void copySlaveJar(PrintStream logger, SmbFile remoteRoot) throws IOException {
         // copy slave.jar
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveJar(getTimestamp()));

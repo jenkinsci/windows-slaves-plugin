@@ -24,7 +24,7 @@
       <tag>HEAD</tag>
    </scm>
    <properties>
-      <jenkins.version>1.554.3</jenkins.version>
+      <jenkins.version>1.580.1</jenkins.version>
       <java.level>6</java.level>
    </properties>
 
