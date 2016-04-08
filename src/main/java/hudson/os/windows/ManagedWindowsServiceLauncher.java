@@ -207,7 +207,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             SWbemServices services = WMI.connect(session, name);
 
 
-            String path = computer.getNode().getRemoteFS();
+            Slave node = computer.getNode();
+            String path = node != null ? node.getRemoteFS() : "";
             if (path.indexOf(':')==-1)   throw new IOException("Remote file system root path of the slave needs to be absolute: "+path);
             SmbFile remoteRoot = new SmbFile("smb://" + name + "/" + path.replace('\\', '/').replace(':', '$')+"/",createSmbAuth());
 
@@ -387,7 +388,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     private EnvVars getEnvVars(SlaveComputer computer) {
         final EnvVars global = getEnvVars(Jenkins.getInstance());
 
-        final EnvVars local = getEnvVars(computer.getNode());
+        Slave node = computer.getNode();
+        final EnvVars local = node != null ? getEnvVars(node) : null;
 
         if (global != null) {
             if (local != null) {
@@ -473,13 +475,17 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             JISession session = JISession.createSession(auth);
             session.setGlobalSocketTimeout(60000);
             SWbemServices services = WMI.connect(session, determineHost(computer));
-            String id = generateServiceId(computer.getNode().getRemoteFS());
-            Win32Service slaveService = services.getService(id);
-            if(slaveService!=null) {
-                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
-                slaveService.StopService();
-                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
-                slaveService.Delete();
+            
+            Slave node = computer.getNode();
+            if (node != null) {
+                String id = generateServiceId(node.getRemoteFS());
+                Win32Service slaveService = services.getService(id);
+                if(slaveService!=null) {
+                    listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
+                    slaveService.StopService();
+                    listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
+                    slaveService.Delete();
+                }
             }
             //destroy session to free the socket	
             JISession.destroySession(session);
