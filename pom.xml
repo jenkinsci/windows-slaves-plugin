@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.6</version>
+        <version>2.12</version>
     </parent>
     <artifactId>windows-slaves</artifactId>
     <version>1.2-SNAPSHOT</version>

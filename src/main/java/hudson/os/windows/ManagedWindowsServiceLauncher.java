@@ -26,6 +26,7 @@ package hudson.os.windows;
 import static hudson.Util.copyStreamAndClose;
 import static org.jvnet.hudson.wmi.Win32Service.Win32OwnProcess;
 
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Util;
@@ -72,8 +73,6 @@ import org.jvnet.hudson.wmi.SWbemServices;
 import org.jvnet.hudson.wmi.WMI;
 import org.jvnet.hudson.wmi.Win32Service;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Windows slave installed/managed as a service entirely remotely
@@ -387,27 +386,27 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
 
     // -- duplicates code from ssh-slaves-plugin
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "https://github.com/jenkinsci/jenkins/pull/2094")
     private EnvVars getEnvVars(SlaveComputer computer) {
-        final EnvVars global = getEnvVars(Jenkins.getInstance());
-
         Slave node = computer.getNode();
         final EnvVars local = node != null ? getEnvVars(node) : null;
-
-        if (global != null) {
-            if (local != null) {
-                final EnvVars merged = new EnvVars(global);
-                merged.overrideAll(local);
-
-                return merged;
-            } else {
-                return global;
+        
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            final EnvVars global = getEnvVars(jenkins);
+            if (global != null) {
+                if (local != null) {
+                    final EnvVars merged = new EnvVars(global);
+                    merged.overrideAll(local);
+                    
+                    return merged;
+                } else {
+                    return global;
+                }
+            } else if (local != null) {
+                return local;
             }
-        } else if (local != null) {
-            return local;
-        } else {
-            return new EnvVars();
         }
+        return new EnvVars();
     }
 
     private EnvVars getEnvVars(Node n) {
@@ -447,7 +446,6 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
     
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "https://github.com/jenkinsci/jenkins/pull/2094")
     private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
         String xml = generateSlaveXml(serviceId,
@@ -456,11 +454,15 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return xml;
     }
 
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "https://github.com/jenkinsci/jenkins/pull/2094")
     private void copySlaveJar(PrintStream logger, SmbFile remoteRoot) throws IOException {
         // copy slave.jar
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveJar(getTimestamp()));
-        copyStreamAndClose(Jenkins.getInstance().getJnlpJars("slave.jar").getURL().openStream(), new SmbFile(remoteRoot,"slave.jar").getOutputStream());
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            copyStreamAndClose(jenkins.getJnlpJars("slave.jar").getURL().openStream(), new SmbFile(remoteRoot,"slave.jar").getOutputStream());
+        } else {
+            throw new AbortException("Unable to copy slave JAR. Jenkins has not yet been started.");
+        }
     }
 
     private int readSmbFile(SmbFile f) throws IOException {
