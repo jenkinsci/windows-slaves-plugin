@@ -209,7 +209,10 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
 
             Slave node = computer.getNode();
-            String path = node != null ? node.getRemoteFS() : "";
+            if (node == null) {
+                throw new AbortException("Error retrieving node. Node might have been removed");
+            }
+            String path = node.getRemoteFS();
             if (path.indexOf(':')==-1)   throw new IOException("Remote file system root path of the slave needs to be absolute: "+path);
             SmbFile remoteRoot = new SmbFile("smb://" + name + "/" + path.replace('\\', '/').replace(':', '$')+"/",createSmbAuth());
 
@@ -378,7 +381,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
 
-    private String resolveJava(SlaveComputer computer) {
+    private String resolveJava(SlaveComputer computer) throws AbortException {
         if (StringUtils.isNotBlank(javaPath)) {
             return getEnvVars(computer).expand(javaPath);
         }
@@ -386,7 +389,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
 
     // -- duplicates code from ssh-slaves-plugin
-    private EnvVars getEnvVars(SlaveComputer computer) {
+    private EnvVars getEnvVars(SlaveComputer computer) throws AbortException {
         Slave node = computer.getNode();
         final EnvVars local = node != null ? getEnvVars(node) : null;
         
@@ -405,6 +408,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             } else if (local != null) {
                 return local;
             }
+        } else {
+            throw new AbortException("Jenkins is shut down, no agent will be launched.");
         }
         return new EnvVars();
     }
@@ -493,6 +498,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
                     slaveService.Delete();
                 }
+            } else {
+                throw new AbortException("Node might have been already removed, skipping afterDisconnect logic.");
             }
             //destroy session to free the socket	
             JISession.destroySession(session);
