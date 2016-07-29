@@ -492,7 +492,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             if (node != null) {
                 String id = generateServiceId(node.getRemoteFS());
                 Win32Service slaveService = services.getService(id);
-                if(slaveService!=null) {
+                if(slaveService != null) {
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
                     slaveService.StopService();
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
