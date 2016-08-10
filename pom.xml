@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.554.3</version>
+        <version>2.12</version>
     </parent>
     <artifactId>windows-slaves</artifactId>
     <version>1.2-SNAPSHOT</version>
@@ -22,12 +22,23 @@
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
       <tag>HEAD</tag>
-  </scm>
+   </scm>
+   <properties>
+      <jenkins.version>1.580.1</jenkins.version>
+      <java.level>6</java.level>
+   </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>windows-remote-command</artifactId>
             <version>1.4</version>
+            <exclusions>
+               <exclusion>
+                  <groupId>org.jvnet</groupId>
+                  <artifactId>tiger-types</artifactId>
+               </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
     <repositories>

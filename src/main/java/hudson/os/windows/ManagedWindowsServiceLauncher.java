@@ -26,6 +26,7 @@ package hudson.os.windows;
 import static hudson.Util.copyStreamAndClose;
 import static org.jvnet.hudson.wmi.Win32Service.Win32OwnProcess;
 
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Util;
@@ -207,7 +208,11 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             SWbemServices services = WMI.connect(session, name);
 
 
-            String path = computer.getNode().getRemoteFS();
+            Slave node = computer.getNode();
+            if (node == null) {
+                throw new AbortException("Error retrieving node. Node might have been removed");
+            }
+            String path = node.getRemoteFS();
             if (path.indexOf(':')==-1)   throw new IOException("Remote file system root path of the slave needs to be absolute: "+path);
             SmbFile remoteRoot = new SmbFile("smb://" + name + "/" + path.replace('\\', '/').replace(':', '$')+"/",createSmbAuth());
 
@@ -376,7 +381,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
 
-    private String resolveJava(SlaveComputer computer) {
+    private String resolveJava(SlaveComputer computer) throws AbortException {
         if (StringUtils.isNotBlank(javaPath)) {
             return getEnvVars(computer).expand(javaPath);
         }
@@ -384,25 +389,29 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
 
     // -- duplicates code from ssh-slaves-plugin
-    private EnvVars getEnvVars(SlaveComputer computer) {
-        final EnvVars global = getEnvVars(Jenkins.getInstance());
-
-        final EnvVars local = getEnvVars(computer.getNode());
-
-        if (global != null) {
-            if (local != null) {
-                final EnvVars merged = new EnvVars(global);
-                merged.overrideAll(local);
-
-                return merged;
-            } else {
-                return global;
+    private EnvVars getEnvVars(SlaveComputer computer) throws AbortException {
+        Slave node = computer.getNode();
+        final EnvVars local = node != null ? getEnvVars(node) : null;
+        
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            final EnvVars global = getEnvVars(jenkins);
+            if (global != null) {
+                if (local != null) {
+                    final EnvVars merged = new EnvVars(global);
+                    merged.overrideAll(local);
+                    
+                    return merged;
+                } else {
+                    return global;
+                }
+            } else if (local != null) {
+                return local;
             }
-        } else if (local != null) {
-            return local;
         } else {
-            return new EnvVars();
+            throw new AbortException("Jenkins is shut down, no agent will be launched.");
         }
+        return new EnvVars();
     }
 
     private EnvVars getEnvVars(Node n) {
@@ -453,7 +462,12 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     private void copySlaveJar(PrintStream logger, SmbFile remoteRoot) throws IOException {
         // copy slave.jar
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveJar(getTimestamp()));
-        copyStreamAndClose(Jenkins.getInstance().getJnlpJars("slave.jar").getURL().openStream(), new SmbFile(remoteRoot,"slave.jar").getOutputStream());
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            copyStreamAndClose(jenkins.getJnlpJars("slave.jar").getURL().openStream(), new SmbFile(remoteRoot,"slave.jar").getOutputStream());
+        } else {
+            throw new AbortException("Unable to copy slave JAR. Jenkins has not yet been started.");
+        }
     }
 
     private int readSmbFile(SmbFile f) throws IOException {
@@ -473,13 +487,19 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             JISession session = JISession.createSession(auth);
             session.setGlobalSocketTimeout(60000);
             SWbemServices services = WMI.connect(session, determineHost(computer));
-            String id = generateServiceId(computer.getNode().getRemoteFS());
-            Win32Service slaveService = services.getService(id);
-            if(slaveService!=null) {
-                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
-                slaveService.StopService();
-                listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
-                slaveService.Delete();
+            
+            Slave node = computer.getNode();
+            if (node != null) {
+                String id = generateServiceId(node.getRemoteFS());
+                Win32Service slaveService = services.getService(id);
+                if(slaveService != null) {
+                    listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
+                    slaveService.StopService();
+                    listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
+                    slaveService.Delete();
+                }
+            } else {
+                throw new AbortException("Node might have been already removed, skipping afterDisconnect logic.");
             }
             //destroy session to free the socket	
             JISession.destroySession(session);
