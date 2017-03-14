@@ -291,6 +291,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
                 // copy exe
                 logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveExe(getTimestamp()));
+                //TODO: This executable in the core is designed for the master, not for the core
                 copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe").openStream(), new SmbFile(remoteRoot,"jenkins-slave.exe").getOutputStream());
 
                 copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe.config").openStream(), new SmbFile(remoteRoot,"jenkins-slave.exe.config").getOutputStream());
@@ -453,7 +454,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     
     private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
-        String xml = generateSlaveXml(serviceId,
+        String xml = generateSlaveXml(getClass(), serviceId,
                 java + "w.exe", vmargs, "-tcp %BASE%\\port.txt");
         copyStreamAndClose(new ByteArrayInputStream(xml.getBytes("UTF-8")), new SmbFile(remoteRoot,"jenkins-slave.xml").getOutputStream());
         return xml;
@@ -516,8 +517,8 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         return "jenkinsslave-"+slaveRoot.replace(':','_').replace('\\','_').replace('/','_');
     }
 
-    String generateSlaveXml(String id, String java, String vmargs, String args) throws IOException {
-        String xml = org.apache.commons.io.IOUtils.toString(getClass().getResourceAsStream("/windows-service/jenkins-slave.xml"), "UTF-8");
+    static String generateSlaveXml(Class<?> clazz, String id, String java, String vmargs, String args) throws IOException {
+        String xml = org.apache.commons.io.IOUtils.toString(clazz.getResourceAsStream("configsamples/jenkins-slave.xml"), "UTF-8");
         xml = xml.replace("@ID@", id);
         xml = xml.replace("@JAVA@", java);
         xml = xml.replace("@VMARGS@", StringUtils.defaultString(vmargs));
