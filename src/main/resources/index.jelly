@@ -1,4 +1,4 @@
 <?jelly escape-by-default='true'?>
 <div>
-    Allows you to connect to Windows machines and start slave agents on them.
+    Allows you to connect to Windows machines and start agents on them.
 </div>
