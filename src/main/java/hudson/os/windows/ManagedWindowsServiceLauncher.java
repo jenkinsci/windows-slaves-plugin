@@ -232,7 +232,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 int exitCode = proc.waitFor();
                 if (exitCode==1) {// we'll get this error code if Java is not found
                     logger.println("No Java found. Downloading JDK");
-                    JDKInstaller jdki = new JDKInstaller("jdk-6u16-oth-JPR@CDS-CDS_Developer",true);
+                    JDKInstaller jdki = new JDKInstaller("jdk-8u144-oth-JPR",true);
                     URL jdk = jdki.locate(listener, Platform.WINDOWS, CPU.i386);
 
                     listener.getLogger().println("Installing JDK");
