@@ -456,7 +456,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
         String xml = generateSlaveXml(getClass(), serviceId,
-                java + "w.exe", vmargs, "-tcp %BASE%\\port.txt");
+                java + "w.exe", vmargs, "-tcp \"%BASE%\\port.txt\"");
         copyStreamAndClose(new ByteArrayInputStream(xml.getBytes("UTF-8")), new SmbFile(remoteRoot,"jenkins-slave.xml").getOutputStream());
         return xml;
     }
