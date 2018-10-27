@@ -84,9 +84,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      * "[DOMAIN\\]USERNAME" to follow the Windows convention.
      */
     public final String userName;
-    
+
     public final Secret password;
-    
+
     public final String vmargs;
 
     public final String javaPath;
@@ -100,7 +100,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      * Specifies the account used to run the service.
      */
     private ManagedWindowsServiceAccount account;
-    
+
     public static class AccountInfo extends AbstractDescribableImpl<AccountInfo> {
         public final String userName;
 
@@ -126,7 +126,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      * @since 1.419
      */
     public final String host;
-    
+
     public ManagedWindowsServiceLauncher(String userName, String password) {
         this (userName, password, null);
     }
@@ -138,7 +138,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     public ManagedWindowsServiceLauncher(String userName, String password, String host, AccountInfo account) {
         this(userName,password,host,account==null ? new LocalSystem() : new AnotherUser(account.userName,account.password), null);
     }
-    
+
     public ManagedWindowsServiceLauncher(String userName, String password, String host, ManagedWindowsServiceAccount account, String vmargs) {
         this(userName, password, host, account, vmargs, "");
     }
@@ -252,7 +252,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 return;
             }
 
-// this just doesn't work --- trying to obtain the type or check the existence of smb://server/C$/ results in "access denied"    
+// this just doesn't work --- trying to obtain the type or check the existence of smb://server/C$/ results in "access denied"
 //            {// check if the administrative share exists
 //                String fullpath = remoteRoot.getPath();
 //                int idx = fullpath.indexOf("$/");
@@ -367,7 +367,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                         afterDisconnect(computer,listener);
                     }
                 });
-            //destroy session to free the socket	
+            //destroy session to free the socket
             JISession.destroySession(session);
         } catch (UnknownHostException e) {
             listener.error(Messages.ManagedWindowsServiceLauncher_UnknownHost(getTimestamp(), e.getMessage()));
@@ -393,7 +393,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     private EnvVars getEnvVars(SlaveComputer computer) throws AbortException {
         Slave node = computer.getNode();
         final EnvVars local = node != null ? getEnvVars(node) : null;
-        
+
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             final EnvVars global = getEnvVars(jenkins);
@@ -401,7 +401,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 if (local != null) {
                     final EnvVars merged = new EnvVars(global);
                     merged.overrideAll(local);
-                    
+
                     return merged;
                 } else {
                     return global;
@@ -447,7 +447,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             return host;
         }
     }
-    
+
     private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
         logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
         String xml = generateSlaveXml(getClass(), serviceId,
@@ -484,7 +484,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             JISession session = JISession.createSession(auth);
             session.setGlobalSocketTimeout(60000);
             SWbemServices services = WMI.connect(session, determineHost(computer));
-            
+
             Slave node = computer.getNode();
             if (node != null) {
                 String id = generateServiceId(node.getRemoteFS());

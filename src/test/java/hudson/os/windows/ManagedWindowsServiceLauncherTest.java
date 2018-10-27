@@ -45,14 +45,14 @@ public class ManagedWindowsServiceLauncherTest {
         s.setLauncher(launcher);
         r.assertEqualDataBoundBeans(launcher, r.configRoundtrip(s).getLauncher());
     }
-    
+
     @Test
     @Issue("JENKINS-42724") // In Jenkins 2.50, worked around as JENKINS-42746
     public void shouldGenerateCorrectXML() throws Exception {
         ManagedWindowsServiceLauncher launcher = new ManagedWindowsServiceLauncher("jenkins", "jEnKiNs", "nowhere.net", new ManagedWindowsServiceAccount.AnotherUser("bob", Secret.fromString("s3cr3t")), "-Xmx128m", "C:\\stuff\\java");
-        
+
         // Generate XML from the pattern and ensure that all macros have been resolved
-        String xml = ManagedWindowsServiceLauncher.generateSlaveXml(launcher.getClass(), 
+        String xml = ManagedWindowsServiceLauncher.generateSlaveXml(launcher.getClass(),
                 "serviceid", "myjava", "", "-tcp %BASE%\\port.txt");
         assertThat("There is unresolved macro", xml, not(containsString("@")));
     }

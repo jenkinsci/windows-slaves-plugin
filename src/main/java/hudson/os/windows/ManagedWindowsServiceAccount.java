@@ -33,7 +33,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Encapsulates how to login (a part of {@link ManagedWindowsServiceLauncher}).
- * 
+ *
  * @author Kohsuke Kawaguchi
  * @author Vincent Latombe
  * @since 1.448

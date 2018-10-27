@@ -53,7 +53,7 @@ public class WindowsRemoteFileSystem implements FileSystem {
         }
         src.delete();
     }
-    
+
     public void mkdirs(String path) throws IOException {
         $(path).mkdirs();
     }
