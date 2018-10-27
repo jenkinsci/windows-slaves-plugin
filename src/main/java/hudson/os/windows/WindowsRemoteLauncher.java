@@ -55,9 +55,7 @@ public class WindowsRemoteLauncher extends Launcher {
         final Process proc;
         try {
             proc = launcher.launch(buildCommandLine(ps), ps.pwd().getRemote());
-        } catch (JIException e) {
-            throw new IOException(e);
-        } catch (InterruptedException e) {
+        } catch (JIException | InterruptedException e) {
             throw new IOException(e);
         }
         final Thread t1 = new StreamCopyThread("stdout copier: "+name, proc.getInputStream(), ps.stdout(),false);

@@ -371,7 +371,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             JISession.destroySession(session);
         } catch (UnknownHostException e) {
             listener.error(Messages.ManagedWindowsServiceLauncher_UnknownHost(getTimestamp(), e.getMessage()));
-        } catch (SmbException e) {
+        } catch (SmbException | DocumentException e) {
             e.printStackTrace(listener.error(e.getMessage()));
         } catch (JIException e) {
             if(e.getErrorCode()==5)
@@ -379,8 +379,6 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 e.printStackTrace(listener.error(Messages.ManagedWindowsServiceLauncher_AccessDenied(getTimestamp())));
             else
                 e.printStackTrace(listener.error(e.getMessage()));
-        } catch (DocumentException e) {
-            e.printStackTrace(listener.error(e.getMessage()));
         }
     }
 
@@ -500,13 +498,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             } else {
                 throw new AbortException("Node might have been already removed, skipping afterDisconnect logic.");
             }
-            //destroy session to free the socket	
+            //destroy session to free the socket
             JISession.destroySession(session);
-        } catch (UnknownHostException e) {
-            e.printStackTrace(listener.error(e.getMessage()));
-        } catch (JIException e) {
-            e.printStackTrace(listener.error(e.getMessage()));
-        } catch (IOException e) {
+        } catch (JIException | IOException e) {
             e.printStackTrace(listener.error(e.getMessage()));
         }
     }
