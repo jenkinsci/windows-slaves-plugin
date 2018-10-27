@@ -35,14 +35,12 @@ import hudson.os.windows.ManagedWindowsServiceAccount.AnotherUser;
 import hudson.os.windows.ManagedWindowsServiceAccount.LocalSystem;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Listener;
-import hudson.remoting.SocketInputStream;
-import hudson.remoting.SocketOutputStream;
+import hudson.remoting.SocketChannelStream;
 import hudson.slaves.*;
 import hudson.tools.JDKInstaller;
 import hudson.tools.JDKInstaller.CPU;
 import hudson.tools.JDKInstaller.Platform;
 import hudson.util.DescribableList;
-import hudson.util.IOUtils;
 import hudson.util.Secret;
 import hudson.util.jna.DotNet;
 
@@ -61,6 +59,7 @@ import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 import jenkins.model.Jenkins;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -358,9 +357,11 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             final Socket s = new Socket(name,p);
 
             // ready
-            computer.setChannel(new BufferedInputStream(new SocketInputStream(s)),
-                new BufferedOutputStream(new SocketOutputStream(s)),
-                listener.getLogger(),new Listener() {
+            computer.setChannel(
+                new BufferedInputStream(SocketChannelStream.in(s)),
+                new BufferedOutputStream(SocketChannelStream.out(s)),
+                listener.getLogger(),
+                new Listener() {
                     @Override
                     public void onClosed(Channel channel, IOException cause) {
                         afterDisconnect(computer,listener);
@@ -519,7 +520,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
 
     static String generateSlaveXml(Class<?> clazz, String id, String java, String vmargs, String args) throws IOException {
-        String xml = org.apache.commons.io.IOUtils.toString(clazz.getResourceAsStream("configsamples/jenkins-slave.xml"), "UTF-8");
+        String xml = IOUtils.toString(clazz.getResourceAsStream("configsamples/jenkins-slave.xml"), "UTF-8");
         xml = xml.replace("@ID@", id);
         xml = xml.replace("@JAVA@", java);
         xml = xml.replace("@VMARGS@", StringUtils.defaultString(vmargs));
