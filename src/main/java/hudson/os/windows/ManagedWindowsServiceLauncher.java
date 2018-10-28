@@ -438,6 +438,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
     /**
      * Determines the host name (or the IP address) to connect to.
+     *
+     * @param c the computer
+     * @return the host name or IP address
      */
     protected String determineHost(Computer c) {
         // If host not provided, default to the slave name
