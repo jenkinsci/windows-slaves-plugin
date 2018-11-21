@@ -45,6 +45,7 @@ public class WindowsRemoteLauncher extends Launcher {
         return b.toString();
     }
 
+    @Override
     public Proc launch(ProcStarter ps) throws IOException {
         maskedPrintCommandLine(ps.cmds(), ps.masks(), ps.pwd());
 
@@ -64,6 +65,8 @@ public class WindowsRemoteLauncher extends Launcher {
         t2.start();
 
         return new Proc() {
+
+            @Override
             public boolean isAlive() throws IOException, InterruptedException {
                 try {
                     proc.exitValue();
@@ -73,12 +76,14 @@ public class WindowsRemoteLauncher extends Launcher {
                 }
             }
 
+            @Override
             public void kill() throws IOException, InterruptedException {
                 t1.interrupt();
                 t2.interrupt();
                 proc.destroy();
             }
 
+            @Override
             public int join() throws IOException, InterruptedException {
                 try {
                     t1.join();
@@ -106,6 +111,7 @@ public class WindowsRemoteLauncher extends Launcher {
         };
     }
 
+    @Override
     public Channel launchChannel(String[] cmd, OutputStream out, FilePath _workDir, Map<String, String> envVars) throws IOException, InterruptedException {
         printCommandLine(cmd, _workDir);
 
@@ -120,6 +126,7 @@ public class WindowsRemoteLauncher extends Launcher {
         }
     }
 
+    @Override
     public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
         // no way to do this
     }

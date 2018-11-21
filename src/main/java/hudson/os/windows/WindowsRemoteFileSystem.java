@@ -29,22 +29,27 @@ public class WindowsRemoteFileSystem implements FileSystem {
         return new SmbFile("smb://" + hostName + "/" + path.replace('\\', '/').replace(':', '$')+"/",auth);
     }
 
+    @Override
     public void delete(String file) throws IOException, InterruptedException {
         $(file).delete();
     }
 
+    @Override
     public void chmod(String file, int mode) throws IOException, InterruptedException {
         // no-op on Windows
     }
 
+    @Override
     public InputStream read(String file) throws IOException {
         return $(file).getInputStream();
     }
 
+    @Override
     public List<String> listSubDirectories(String dir) throws IOException, InterruptedException {
         return asList($(dir).list());
     }
 
+    @Override
     public void pullUp(String from, String to) throws IOException, InterruptedException {
         SmbFile src = $(from);
         SmbFile dst = $(to);
