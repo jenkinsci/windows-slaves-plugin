@@ -26,7 +26,7 @@ public class WindowsRemoteFileSystem implements FileSystem {
     }
 
     private SmbFile $(String path) throws MalformedURLException {
-        return new SmbFile("smb://" + hostName + "/" + path.replace('\\', '/').replace(':', '$')+"/",auth);
+        return new SmbFile("smb://" + hostName + "/" + path.replace('\\', '/').replace(':', '$') + "/", auth);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class WindowsRemoteFileSystem implements FileSystem {
         SmbFile src = $(from);
         SmbFile dst = $(to);
         for (SmbFile e : src.listFiles()) {
-            e.renameTo(new SmbFile(dst,e.getName()));
+            e.renameTo(new SmbFile(dst, e.getName()));
         }
         src.delete();
     }

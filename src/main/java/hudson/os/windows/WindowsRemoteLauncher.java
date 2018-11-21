@@ -29,15 +29,15 @@ public class WindowsRemoteLauncher extends Launcher {
     private final WindowsRemoteProcessLauncher launcher;
 
     public WindowsRemoteLauncher(TaskListener listener, WindowsRemoteProcessLauncher launcher) {
-        super(listener,null);
+        super(listener, null);
         this.launcher = launcher;
     }
 
     private String buildCommandLine(ProcStarter ps) {
         StringBuilder b = new StringBuilder();
         for (String cmd : ps.cmds()) {
-            if (b.length()>0)   b.append(' ');
-            if (cmd.indexOf(' ')>=0)
+            if (b.length() > 0) b.append(' ');
+            if (cmd.indexOf(' ') >= 0)
                 b.append('"').append(cmd).append('"');
             else
                 b.append(cmd);
@@ -59,9 +59,9 @@ public class WindowsRemoteLauncher extends Launcher {
         } catch (JIException | InterruptedException e) {
             throw new IOException(e);
         }
-        final Thread t1 = new StreamCopyThread("stdout copier: "+name, proc.getInputStream(), ps.stdout(),false);
+        final Thread t1 = new StreamCopyThread("stdout copier: " + name, proc.getInputStream(), ps.stdout(), false);
         t1.start();
-        final Thread t2 = new StreamCopyThread("stdin copier: "+name,ps.stdin(), proc.getOutputStream(),true);
+        final Thread t2 = new StreamCopyThread("stdin copier: " + name, ps.stdin(), proc.getOutputStream(), true);
         t2.start();
 
         return new Proc() {

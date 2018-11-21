@@ -36,9 +36,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 public class ManagedWindowsServiceLauncherTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
 
-    @Test public void configRoundTrip() throws Exception {
+    @Test
+    public void configRoundTrip() throws Exception {
         assertTrue(r.jenkins.getPluginManager().getPlugin("windows-slaves").isActive()); // verifying JENKINS-28816
         DumbSlave s = r.createSlave();
         ManagedWindowsServiceLauncher launcher = new ManagedWindowsServiceLauncher("jenkins", "jEnKiNs", "nowhere.net", new ManagedWindowsServiceAccount.AnotherUser("bob", Secret.fromString("s3cr3t")), "-Xmx128m", "C:\\stuff\\java");
