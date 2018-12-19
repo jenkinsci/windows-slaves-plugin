@@ -11,9 +11,9 @@
     <artifactId>windows-slaves</artifactId>
     <version>1.3.2-SNAPSHOT</version>
     <packaging>hpi</packaging>
-    <name>Windows Agents Plugin</name>
-    <description>Allows you to connect to Windows machines and start slave agents on them.</description>
-    <url>http://wiki.jenkins-ci.org/display/JENKINS/Windows+Slaves+Plugin</url>
+    <name>WMI Windows Agents Plugin</name>
+    <description>Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI)</description>
+    <url>https://wiki.jenkins.io/display/JENKINS/Windows+Slaves+Plugin</url>
     <licenses>
         <license>
             <name>MIT</name>

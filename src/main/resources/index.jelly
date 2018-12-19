@@ -1,4 +1,4 @@
 <?jelly escape-by-default='true'?>
 <div>
-    Allows you to connect to Windows machines and start agents on them.
+    Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI)
 </div>
