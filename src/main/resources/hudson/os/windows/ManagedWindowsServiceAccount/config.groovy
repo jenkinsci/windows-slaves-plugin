@@ -1,1 +1,1 @@
-package hudson.os.windows.ManagedWindowsServiceAccount;
+package hudson.os.windows.ManagedWindowsServiceAccount

@@ -7,6 +7,7 @@ import hudson.Util;
 import hudson.model.Computer;
 import hudson.model.TaskListener;
 import hudson.remoting.Channel;
+import hudson.remoting.ChannelBuilder;
 import hudson.util.StreamCopyThread;
 import org.jinterop.dcom.common.JIException;
 import org.jvnet.hudson.remcom.WindowsRemoteProcessLauncher;
@@ -28,15 +29,15 @@ public class WindowsRemoteLauncher extends Launcher {
     private final WindowsRemoteProcessLauncher launcher;
 
     public WindowsRemoteLauncher(TaskListener listener, WindowsRemoteProcessLauncher launcher) {
-        super(listener,null);
+        super(listener, null);
         this.launcher = launcher;
     }
 
     private String buildCommandLine(ProcStarter ps) {
         StringBuilder b = new StringBuilder();
         for (String cmd : ps.cmds()) {
-            if (b.length()>0)   b.append(' ');
-            if (cmd.indexOf(' ')>=0)
+            if (b.length() > 0) b.append(' ');
+            if (cmd.indexOf(' ') >= 0)
                 b.append('"').append(cmd).append('"');
             else
                 b.append(cmd);
@@ -44,6 +45,7 @@ public class WindowsRemoteLauncher extends Launcher {
         return b.toString();
     }
 
+    @Override
     public Proc launch(ProcStarter ps) throws IOException {
         maskedPrintCommandLine(ps.cmds(), ps.masks(), ps.pwd());
 
@@ -54,17 +56,17 @@ public class WindowsRemoteLauncher extends Launcher {
         final Process proc;
         try {
             proc = launcher.launch(buildCommandLine(ps), ps.pwd().getRemote());
-        } catch (JIException e) {
-            throw new IOException(e);
-        } catch (InterruptedException e) {
+        } catch (JIException | InterruptedException e) {
             throw new IOException(e);
         }
-        final Thread t1 = new StreamCopyThread("stdout copier: "+name, proc.getInputStream(), ps.stdout(),false);
+        final Thread t1 = new StreamCopyThread("stdout copier: " + name, proc.getInputStream(), ps.stdout(), false);
         t1.start();
-        final Thread t2 = new StreamCopyThread("stdin copier: "+name,ps.stdin(), proc.getOutputStream(),true);
+        final Thread t2 = new StreamCopyThread("stdin copier: " + name, ps.stdin(), proc.getOutputStream(), true);
         t2.start();
 
         return new Proc() {
+
+            @Override
             public boolean isAlive() throws IOException, InterruptedException {
                 try {
                     proc.exitValue();
@@ -74,12 +76,14 @@ public class WindowsRemoteLauncher extends Launcher {
                 }
             }
 
+            @Override
             public void kill() throws IOException, InterruptedException {
                 t1.interrupt();
                 t2.interrupt();
                 proc.destroy();
             }
 
+            @Override
             public int join() throws IOException, InterruptedException {
                 try {
                     t1.join();
@@ -107,19 +111,22 @@ public class WindowsRemoteLauncher extends Launcher {
         };
     }
 
+    @Override
     public Channel launchChannel(String[] cmd, OutputStream out, FilePath _workDir, Map<String, String> envVars) throws IOException, InterruptedException {
         printCommandLine(cmd, _workDir);
 
         try {
             Process proc = launcher.launch(Util.join(asList(cmd), " "), _workDir.getRemote());
 
-            return new Channel("channel over named pipe to "+launcher.getHostName(),
-                Computer.threadPoolForRemoting, proc.getInputStream(), new BufferedOutputStream(proc.getOutputStream()));
+            return new ChannelBuilder("channel over named pipe to " + launcher.getHostName(), Computer.threadPoolForRemoting)
+                    .withMode(Channel.Mode.BINARY)
+                    .build(proc.getInputStream(), new BufferedOutputStream(proc.getOutputStream()));
         } catch (JIException e) {
             throw new IOException(e);
         }
     }
 
+    @Override
     public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
         // no way to do this
     }

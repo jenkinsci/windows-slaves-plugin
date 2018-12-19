@@ -1,4 +1,4 @@
-package hudson.os.windows.ManagedWindowsServiceAccount.AnotherUser;
+package hudson.os.windows.ManagedWindowsServiceAccount.AnotherUser
 
 def f = namespace(lib.FormTagLib)
 f.entry (title:_("User name"),field:"userName") {

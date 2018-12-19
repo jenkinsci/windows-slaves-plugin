@@ -1,4 +1,4 @@
-package hudson.os.windows.ManagedWindowsServiceLauncher.AccountInfo;
+package hudson.os.windows.ManagedWindowsServiceLauncher.AccountInfo
 
 
 def f=namespace(lib.FormTagLib)

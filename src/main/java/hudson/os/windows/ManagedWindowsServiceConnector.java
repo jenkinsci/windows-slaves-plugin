@@ -11,9 +11,11 @@ import java.io.IOException;
 
 /**
  * {@link ComputerConnector} that delegates to {@link ManagedWindowsServiceLauncher}.
+ *
  * @author Kohsuke Kawaguchi
  */
 public class ManagedWindowsServiceConnector extends ComputerConnector {
+
     /**
      * "[DOMAIN\\]USERNAME" to follow the Windows convention.
      */
@@ -29,7 +31,7 @@ public class ManagedWindowsServiceConnector extends ComputerConnector {
 
     @Override
     public ManagedWindowsServiceLauncher launch(final String hostName, TaskListener listener) throws IOException, InterruptedException {
-        return new ManagedWindowsServiceLauncher(userName,Secret.toString(password),hostName);
+        return new ManagedWindowsServiceLauncher(userName, Secret.toString(password), hostName);
     }
 
     @Extension
