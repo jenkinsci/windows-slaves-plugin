@@ -33,12 +33,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Encapsulates how to login (a part of {@link ManagedWindowsServiceLauncher}).
- * 
+ *
  * @author Kohsuke Kawaguchi
  * @author Vincent Latombe
  * @since 1.448
  */
 public abstract class ManagedWindowsServiceAccount extends AbstractDescribableImpl<ManagedWindowsServiceAccount> implements ExtensionPoint {
+
     public abstract AccountInfo getAccount(ManagedWindowsServiceLauncher launcher);
 
     /**
@@ -54,7 +55,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
             return null;
         }
 
-        @Extension(ordinal=100)
+        @Extension(ordinal = 100)
         public static class DescriptorImpl extends Descriptor<ManagedWindowsServiceAccount> {
             @Override
             public String getDisplayName() {
@@ -72,7 +73,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
 
         @Override
         public AccountInfo getAccount(ManagedWindowsServiceLauncher launcher) {
-            return new AccountInfo(launcher.userName,Secret.toString(launcher.password));
+            return new AccountInfo(launcher.userName, Secret.toString(launcher.password));
         }
 
         @Extension
@@ -99,7 +100,7 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
 
         @Override
         public AccountInfo getAccount(ManagedWindowsServiceLauncher launcher) {
-            return new AccountInfo(userName,Secret.toString(password));
+            return new AccountInfo(userName, Secret.toString(password));
         }
 
         @Extension
@@ -110,5 +111,4 @@ public abstract class ManagedWindowsServiceAccount extends AbstractDescribableIm
             }
         }
     }
-
 }
