@@ -74,7 +74,7 @@ import org.jvnet.hudson.wmi.Win32Service;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * Windows slave installed/managed as a service entirely remotely
+ * Windows agent installed/managed as a service entirely remotely.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -122,8 +122,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
     }
 
     /**
-     * Host name to connect to. For compatibility reasons, null if the same with the slave name.
-     *
+     * Host name to connect to. For compatibility reasons, null if the same with the agent name.
      * @since 1.419
      */
     public final String host;
@@ -214,7 +213,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 throw new AbortException("Error retrieving node. Node might have been removed");
             }
             String path = node.getRemoteFS();
-            if (path.indexOf(':') == -1) throw new IOException("Remote file system root path of the slave needs to be absolute: " + path);
+            if (path.indexOf(':') == -1) throw new IOException("Remote file system root path of the agent needs to be absolute: " + path);
             SmbFile remoteRoot = new SmbFile("smb://" + name + "/" + path.replace('\\', '/').replace(':', '$') + "/", createSmbAuth());
 
             if (!remoteRoot.exists())
