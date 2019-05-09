@@ -279,9 +279,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 //                }
 //            }
 
-            String id = generateServiceId(path);
-            Win32Service agentService = services.getService(id);
-            if (agentService == null) {
+            String id = findServiceId(services, path);
+            if (id == null) {
+                id = generateServiceId(path);
                 logger.println(Messages.ManagedWindowsServiceLauncher_InstallingAgentService(getTimestamp()));
                 if (!DotNet.isInstalled(2, 0, name, auth)) {
                     // abort the launch
@@ -332,13 +332,13 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                     listener.error("Failed to create a service: " + svc.getErrorMessage(r));
                     return;
                 }
-                agentService = services.getService(id);
             } else {
                 createAndCopyJenkinsAgentXml(java, id, logger, remoteRoot);
                 copyAgentJar(logger, remoteRoot);
             }
 
             logger.println(Messages.ManagedWindowsServiceLauncher_StartingService(getTimestamp()));
+            Win32Service agentService = services.getService(id);
             agentService.start();
 
             // wait until we see the port.txt, but don't do so forever
@@ -491,9 +491,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
             Slave node = computer.getNode();
             if (node != null) {
-                String id = generateServiceId(node.getRemoteFS());
-                Win32Service agentService = services.getService(id);
-                if (agentService != null) {
+                String id = findServiceId(services, node.getRemoteFS());
+                if (id != null) {
+                    Win32Service agentService = services.getService(id);
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
                     agentService.StopService();
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
@@ -509,8 +509,32 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
 
+    private
+    String getServiceIdSuffix(String agentRoot) throws IOException {
+        return agentRoot.replace(':', '_').replace('\\', '_').replace('/', '_');
+    }
+
     String generateServiceId(String agentRoot) throws IOException {
-        return "jenkinsagent-" + agentRoot.replace(':', '_').replace('\\', '_').replace('/', '_');
+        return "jenkinsagent-" + getServiceIdSuffix(agentRoot);
+    }
+
+    private
+    String tryServiceId(SWbemServices services, String serviceId) {
+        try {
+            Win32Service agentService = services.getService(serviceId);
+            if (agentService != null)
+                return serviceId;
+        } catch (Exception ex) {
+        }
+        return null;
+    }
+
+    String findServiceId(SWbemServices services, String agentRoot) throws IOException {
+        String id = getServiceIdSuffix(agentRoot);
+        String serviceId = tryServiceId(services, generateServiceId(id));
+        if (serviceId != null)
+            return serviceId;
+        return tryServiceId(services, "jenkinsslave-" + id);
     }
 
     static String generateAgentXml(Class<?> clazz, String id, String java, String vmargs, String args) throws IOException {
