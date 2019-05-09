@@ -280,9 +280,9 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 //            }
 
             String id = generateServiceId(path);
-            Win32Service slaveService = services.getService(id);
-            if (slaveService == null) {
-                logger.println(Messages.ManagedWindowsServiceLauncher_InstallingSlaveService(getTimestamp()));
+            Win32Service agentService = services.getService(id);
+            if (agentService == null) {
+                logger.println(Messages.ManagedWindowsServiceLauncher_InstallingAgentService(getTimestamp()));
                 if (!DotNet.isInstalled(2, 0, name, auth)) {
                     // abort the launch
                     logger.println(Messages.ManagedWindowsServiceLauncher_DotNetRequired(getTimestamp()));
@@ -290,17 +290,17 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 }
 
                 // copy exe
-                logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveExe(getTimestamp()));
+                logger.println(Messages.ManagedWindowsServiceLauncher_CopyingAgentExe(getTimestamp()));
                 //TODO: This executable in the core is designed for the master, not for the agents
                 // Ideally the resources from Windows Agent Installer Module should be used instead (JENKINS-42743)
-                copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe").openStream(), new SmbFile(remoteRoot, "jenkins-slave.exe").getOutputStream());
+                copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe").openStream(), new SmbFile(remoteRoot, "jenkins-agent.exe").getOutputStream());
 
-                copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe.config").openStream(), new SmbFile(remoteRoot, "jenkins-slave.exe.config").getOutputStream());
+                copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe.config").openStream(), new SmbFile(remoteRoot, "jenkins-agent.exe.config").getOutputStream());
 
-                copySlaveJar(logger, remoteRoot);
+                copyAgentJar(logger, remoteRoot);
 
-                // copy jenkins-slave.xml
-                String xml = createAndCopyJenkinsSlaveXml(java, id, logger, remoteRoot);
+                // copy jenkins-agent.xml
+                String xml = createAndCopyJenkinsAgentXml(java, id, logger, remoteRoot);
 
                 // install it as a service
                 logger.println(Messages.ManagedWindowsServiceLauncher_RegisteringService(getTimestamp()));
@@ -312,13 +312,13 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                     r = svc.Create(
                             id,
                             dom.selectSingleNode("/service/name").getText() + " at " + path,
-                            path + "\\jenkins-slave.exe",
+                            path + "\\jenkins-agent.exe",
                             Win32OwnProcess, 0, "Manual", true);
                 } else {
                     r = svc.Create(
                             id,
                             dom.selectSingleNode("/service/name").getText() + " at " + path,
-                            path + "\\jenkins-slave.exe",
+                            path + "\\jenkins-agent.exe",
                             Win32OwnProcess,
                             0,
                             "Manual",
@@ -332,14 +332,14 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                     listener.error("Failed to create a service: " + svc.getErrorMessage(r));
                     return;
                 }
-                slaveService = services.getService(id);
+                agentService = services.getService(id);
             } else {
-                createAndCopyJenkinsSlaveXml(java, id, logger, remoteRoot);
-                copySlaveJar(logger, remoteRoot);
+                createAndCopyJenkinsAgentXml(java, id, logger, remoteRoot);
+                copyAgentJar(logger, remoteRoot);
             }
 
             logger.println(Messages.ManagedWindowsServiceLauncher_StartingService(getTimestamp()));
-            slaveService.start();
+            agentService.start();
 
             // wait until we see the port.txt, but don't do so forever
             logger.println(Messages.ManagedWindowsServiceLauncher_WaitingForService(getTimestamp()));
@@ -444,7 +444,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
      * @return the host name or IP address
      */
     protected String determineHost(Computer c) {
-        // If host not provided, default to the slave name
+        // If host not provided, default to the agent name
         if (StringUtils.isBlank(host)) {
             return c.getName();
         } else {
@@ -452,22 +452,22 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
 
-    private String createAndCopyJenkinsSlaveXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
-        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveXml(getTimestamp()));
-        String xml = generateSlaveXml(getClass(), serviceId,
+    private String createAndCopyJenkinsAgentXml(String java, String serviceId, PrintStream logger, SmbFile remoteRoot) throws IOException {
+        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingAgentXml(getTimestamp()));
+        String xml = generateAgentXml(getClass(), serviceId,
                 java + "w.exe", vmargs, "-tcp \"%BASE%\\port.txt\"");
-        copyStreamAndClose(new ByteArrayInputStream(xml.getBytes("UTF-8")), new SmbFile(remoteRoot, "jenkins-slave.xml").getOutputStream());
+        copyStreamAndClose(new ByteArrayInputStream(xml.getBytes("UTF-8")), new SmbFile(remoteRoot, "jenkins-agent.xml").getOutputStream());
         return xml;
     }
 
-    private void copySlaveJar(PrintStream logger, SmbFile remoteRoot) throws IOException {
-        // copy slave.jar
-        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingSlaveJar(getTimestamp()));
+    private void copyAgentJar(PrintStream logger, SmbFile remoteRoot) throws IOException {
+        // copy agent.jar
+        logger.println(Messages.ManagedWindowsServiceLauncher_CopyingAgentJar(getTimestamp()));
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
-            copyStreamAndClose(jenkins.getJnlpJars("slave.jar").getURL().openStream(), new SmbFile(remoteRoot, "slave.jar").getOutputStream());
+            copyStreamAndClose(jenkins.getJnlpJars("agent.jar").getURL().openStream(), new SmbFile(remoteRoot, "agent.jar").getOutputStream());
         } else {
-            throw new AbortException("Unable to copy slave JAR. Jenkins has not yet been started.");
+            throw new AbortException("Unable to copy agent JAR. Jenkins has not yet been started.");
         }
     }
 
@@ -492,12 +492,12 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
             Slave node = computer.getNode();
             if (node != null) {
                 String id = generateServiceId(node.getRemoteFS());
-                Win32Service slaveService = services.getService(id);
-                if (slaveService != null) {
+                Win32Service agentService = services.getService(id);
+                if (agentService != null) {
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_StoppingService(getTimestamp()));
-                    slaveService.StopService();
+                    agentService.StopService();
                     listener.getLogger().println(Messages.ManagedWindowsServiceLauncher_UnregisteringService(getTimestamp()));
-                    slaveService.Delete();
+                    agentService.Delete();
                 }
             } else {
                 throw new AbortException("Node might have been already removed, skipping afterDisconnect logic.");
@@ -509,12 +509,12 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
         }
     }
 
-    String generateServiceId(String slaveRoot) throws IOException {
-        return "jenkinsslave-" + slaveRoot.replace(':', '_').replace('\\', '_').replace('/', '_');
+    String generateServiceId(String agentRoot) throws IOException {
+        return "jenkinsagent-" + agentRoot.replace(':', '_').replace('\\', '_').replace('/', '_');
     }
 
-    static String generateSlaveXml(Class<?> clazz, String id, String java, String vmargs, String args) throws IOException {
-        String xml = IOUtils.toString(clazz.getResourceAsStream("configsamples/jenkins-slave.xml"), "UTF-8");
+    static String generateAgentXml(Class<?> clazz, String id, String java, String vmargs, String args) throws IOException {
+        String xml = IOUtils.toString(clazz.getResourceAsStream("configsamples/jenkins-agent.xml"), "UTF-8");
         xml = xml.replace("@ID@", id);
         xml = xml.replace("@JAVA@", java);
         xml = xml.replace("@VMARGS@", StringUtils.defaultString(vmargs));
