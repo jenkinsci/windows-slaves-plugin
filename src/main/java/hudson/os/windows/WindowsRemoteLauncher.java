@@ -47,7 +47,11 @@ public class WindowsRemoteLauncher extends Launcher {
 
     @Override
     public Proc launch(ProcStarter ps) throws IOException {
-        maskedPrintCommandLine(ps.cmds(), ps.masks(), ps.pwd());
+        FilePath pwd = ps.pwd();
+        if (pwd == null) {
+            throw new IOException("Cannot access the process location.");
+        }
+        maskedPrintCommandLine(ps.cmds(), ps.masks(), pwd);
 
         // TODO: environment variable handling
 
@@ -55,7 +59,7 @@ public class WindowsRemoteLauncher extends Launcher {
 
         final Process proc;
         try {
-            proc = launcher.launch(buildCommandLine(ps), ps.pwd().getRemote());
+            proc = launcher.launch(buildCommandLine(ps), pwd.getRemote());
         } catch (JIException | InterruptedException e) {
             throw new IOException(e);
         }
@@ -113,6 +117,9 @@ public class WindowsRemoteLauncher extends Launcher {
 
     @Override
     public Channel launchChannel(String[] cmd, OutputStream out, FilePath _workDir, Map<String, String> envVars) throws IOException, InterruptedException {
+        if (_workDir == null) {
+            throw new IOException("Cannot access local process workdir.");
+        }
         printCommandLine(cmd, _workDir);
 
         try {
