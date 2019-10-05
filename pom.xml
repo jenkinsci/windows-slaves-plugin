@@ -14,10 +14,11 @@
     <name>WMI Windows Agents Plugin</name>
     <description>Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI)</description>
     <url>https://wiki.jenkins.io/display/JENKINS/Windows+Slaves+Plugin</url>
+
     <licenses>
         <license>
             <name>MIT</name>
-            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <url>https://opensource.org/licenses/MIT</url>
         </license>
     </licenses>
 
