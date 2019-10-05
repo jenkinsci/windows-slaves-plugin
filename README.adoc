@@ -2,6 +2,14 @@
 
 Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI).
 
+== Usage
+
+Once the plugin is installed, a new launch type is available in the agent configuration.
+Once the agent configuration is saved,
+Jenkins will reconnect the agent using the plugin.
+
+image:docs/images/configuration.png[]
+
 == How does it work?
 
 This section goes into the details of how the managed Windows agent launcher actually works.
