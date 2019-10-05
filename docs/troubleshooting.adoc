@@ -1,0 +1,555 @@
+= Troubleshooting WMI Windows Agents
+
+NOTE: This is a guide which was migrated from Jenkins Wiki.
+Some guidelines might be obsolete and inapplicable to modern Windows versions.
+
+== Common issue
+
+If you choose _Let Jenkins control this Windows agent as a Windows service_ for connecting to the agent, 
+you may get an error message like this:
+
+```
+Access is denied. [0x00000005]
+    at org.jinterop.dcom.core.JIComServer.init(JIComServer.java:542)
+    at org.jinterop.dcom.core.JIComServer.initialise(JIComServer.java:458)
+    at org.jinterop.dcom.core.JIComServer.<init>(JIComServer.java:427)
+    at org.jvnet.hudson.wmi.WMI.connect(WMI.java:41)
+    at hudson.os.windows.ManagedWindowsServiceLauncher.launch(ManagedWindowsServiceLauncher.java:107)
+    at hudson.slaves.SlaveComputer$1.call(SlaveComputer.java:170)
+    at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+    at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+    at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)
+    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)
+    at java.lang.Thread.run(Thread.java:619)
+Caused by: rpc.FaultException: Received fault. (unknown)
+    at rpc.ConnectionOrientedEndpoint.call(ConnectionOrientedEndpoint.java:142)
+    at rpc.Stub.call(Stub.java:112)
+    at org.jinterop.dcom.core.JIComServer.init(JIComServer.java:538)
+    ... 10 more
+```
+
+If so, check the following settings one after the other on Windows.
+
+== Windows account related issues
+
+=== Local "Administrator" group membership
+
+Make sure that the user name you have entered is a member of the local "Administrators" group. 
+In the default Windows installation, 
+this group membership is required for Jenkins to remotely copy files and install a service.
+
+=== Agent under domain account
+
+If your agent is running under a domain account and you get an error
+code 0x800703FA, change a group policy:
+
+* open the group policy editor (gpedit.msc)
+* go to Computer Configuration->Administrative Templates->System->
+UserProfiles, "Do not forcefully unload the user registry at user
+logoff"
+* Change the setting from "Not Configured" to "Enabled", which disables
+the new User Profile Service feature ('DisableForceUnload' is the value
+added to the registry)
+
+Credit to Oliver Walsh (see comments below)
+
+== Windows networking related issues
+
+=== Firewall
+
+By default, Windows Firewall prevents the TCP connections necessary to
+make this mechanism work. The firewall on the agent must allow the
+following exceptions (see
+http://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers[List of
+TCP&UDP port numbers]):
+
+* TCP Port http://www.speedguide.net/port.php?port=135[135] (DCE/RPC
+Locator service)
+* TCP Port http://www.speedguide.net/port.php?port=139[139] (NetBIOS
+Session Service)
+* TCP Port http://www.speedguide.net/port.php?port=445[445] (Windows
+shares)
+
+* C:\WINDOWS\system32\dllhost.exe (dllhost.exe seems to use a random
+port number)
+* C:\WINDOWS\system32\javaw.exe (Jenkins also uses a random port number)
+* File and Printer sharing (TCP 139, TCP 445, UDP 137, UDP 138 (possibly
+only a subset of these is required))
+
+Example Firewall related issues:
+"`+Error 0x800706BA The RPC server is unavailable.+`",
+"`+SocketTimeoutException: Accept timed out+`",
+"`+TransportException: Connection timeout+`".
+
+The easiest way to track down firewall issues is to use
+http://www.tcpdump.org/[tcpdump]. Just run the following command on the
+Jenkins server, which is trying to connect to the slave:
+
+*Linux/UNIX:*
+
+[width="100%",cols="100%",]
+|===
+a|
+....
+tcpdump -n -i <IF> -s 1500 port not 22 and host <HOST-IP>
+
+<IF>       the network interface name, e.g. eth1
+<HOST-IP>  the IP address of the slave
+....
+
+|===
+
+==== Ports 139 and 445
+
+When the Ports 139 (NetBIOS Session Service) and 445 (Windows Shares)
+are not available, the following error message appears:
+
+```
+ERROR: Message not found for errorCode: 0xC0000001
+org.jinterop.dcom.common.JIException: Message not found for errorCode: 0xC0000001
+ at org.jinterop.winreg.smb.JIWinRegStub.winreg_OpenHKCR(JIWinRegStub.java:121)
+ at org.jinterop.dcom.core.JIComServer.initialise(JIComServer.java:479)
+ at org.jinterop.dcom.core.JIComServer.<init>(JIComServer.java:427)
+ at org.jvnet.hudson.wmi.WMI.connect(WMI.java:41)
+ at hudson.os.windows.ManagedWindowsServiceLauncher.launch(ManagedWindowsServiceLauncher.java:137)
+ at hudson.slaves.SlaveComputer$1.call(SlaveComputer.java:184)
+ at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+ at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+ at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)
+ at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)
+ at java.lang.Thread.run(Thread.java:619)
+Caused by: jcifs.smb.SmbException:
+Connection timeout jcifs.util.transport.TransportException: Connection timeout
+ at jcifs.util.transport.Transport.connect(Transport.java:178)
+ at jcifs.smb.SmbTransport.connect(SmbTransport.java:294)
+ at jcifs.smb.SmbTree.treeConnect(SmbTree.java:141)
+ at jcifs.smb.SmbFile.doConnect(SmbFile.java:858)
+ at jcifs.smb.SmbFile.connect(SmbFile.java:901)
+ at jcifs.smb.SmbFile.connect0(SmbFile.java:827)
+ at jcifs.smb.SmbFileInputStream.<init>(SmbFileInputStream.java:76)
+ at jcifs.smb.SmbFileInputStream.<init>(SmbFileInputStream.java:65)
+ at jcifs.smb.SmbFile.getInputStream(SmbFile.java:2784)
+ at rpc.ncacn_np.RpcTransport.attach(RpcTransport.java:90)
+ at rpc.Stub.attach(Stub.java:105)
+ at rpc.Stub.call(Stub.java:109)
+ at org.jinterop.winreg.smb.JIWinRegStub.winreg_OpenHKCR(JIWinRegStub.java:119)
+ at org.jinterop.dcom.core.JIComServer.initialise(JIComServer.java:479)
+ at org.jinterop.dcom.core.JIComServer.<init>(JIComServer.java:427)
+ at org.jvnet.hudson.wmi.WMI.connect(WMI.java:41)
+ at hudson.os.windows.ManagedWindowsServiceLauncher.launch(ManagedWindowsServiceLauncher.java:137)
+ at hudson.slaves.SlaveComputer$1.call(SlaveComputer.java:184)
+ at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+ at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+ at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)
+ at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)
+ at java.lang.Thread.run(Thread.java:619)
+ at jcifs.smb.SmbTransport.connect(SmbTransport.java:296)
+ at jcifs.smb.SmbTree.treeConnect(SmbTree.java:141)
+ at jcifs.smb.SmbFile.doConnect(SmbFile.java:858)
+ at jcifs.smb.SmbFile.connect(SmbFile.java:901)
+ at jcifs.smb.SmbFile.connect0(SmbFile.java:827)
+ at jcifs.smb.SmbFileInputStream.<init>(SmbFileInputStream.java:76)
+ at jcifs.smb.SmbFileInputStream.<init>(SmbFileInputStream.java:65)
+ at jcifs.smb.SmbFile.getInputStream(SmbFile.java:2784)
+ at rpc.ncacn_np.RpcTransport.attach(RpcTransport.java:90)
+ at rpc.Stub.attach(Stub.java:105)
+ at rpc.Stub.call(Stub.java:109)
+ at org.jinterop.winreg.smb.JIWinRegStub.winreg_OpenHKCR(JIWinRegStub.java:119)
+ ... 10 more
+....
+```
+
+=== Windows NAT blocking
+
+This can occur whenever you've got a Jenkins server, and a newer version of Windows (e.g. 2008) on different network segments as an agent (has observed it on EC2). 
+You'll get an error saying port 135 is unavailable even if you've opened it. 
+There's a setting on the advanced tab of firewall rules, you must select "Allow Edge Traversal".
+NAT is not security damn it!
+
+== Windows registry related issues
+
+=== Remote Communication Service
+
+The Remote Communication Service "RemComSvc" must be running in order to launch commands remotely. 
+If not started, Jenkins will try to (remotely) start this service, assuming it is well configured. 
+If not, you may get an error like :
+
+```
+....
+Checking if Java exists
+ERROR: Failed to prepare Java
+java.lang.reflect.UndeclaredThrowableException
+....
+```
+
+In some cases (especially Windows 2008 R2) this can be caused by the lack of the Visual C++ runtime libraries needed by the service. 
+If this is the case you will see an error in the windows event log similar to:
+
+```
+....
+Activation context generation failed for "C:\Windows\RemComSvc.exe".
+Dependent Assembly Microsoft.VC90.CRT,processorArchitecture="x86",publicKeyToken="1fc8b3b9a1e18e3b",type="win32",version="9.0.21022.8" could not be found.
+Please use sxstrace.exe for detailed diagnosis.
+....
+```
+
+To solve this issue install the http://www.microsoft.com/download/en/details.aspx?id=5582[Visual C++ 2008 x86] libraries.
+
+The Remote Communication Service source code is a
+https://github.com/jenkinsci/lib-windows-remote-command[part of Jenkins].
+
+=== Remote Registry Service
+
+The Remote Registry service must be running in order to install the Jenkins service, but it may be stopped on your computer.  
+This is especially true for Windows Vista and above, where it is disabled by default.  
+If it is not running, you may get an error like this:
+
+```
+....
+Message not found for errorCode: 0xC0000034
+ org.jinterop.dcom.common.JIException: Message not found for errorCode: 0xC0000034
+     at org.jinterop.winreg.smb.JIWinRegStub.winreg_OpenHKCR(JIWinRegStub.java:121)
+     at org.jinterop.dcom.core.JIComServer.initialise(JIComServer.java:479)
+     at org.jinterop.dcom.core.JIComServer.<init>(JIComServer.java:427)
+     at org.jvnet.hudson.wmi.WMI.connect(WMI.java:41)
+     at hudson.os.windows.ManagedWindowsServiceLauncher.launch(ManagedWindowsServiceLauncher.java:107)
+     at hudson.slaves.SlaveComputer$1.call(SlaveComputer.java:178)
+     at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:334)
+     at java.util.concurrent.FutureTask.run(FutureTask.java:166)
+     at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110)
+     at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
+     at java.lang.Thread.run(Thread.java:636)
+ Caused by: jcifs.smb.SmbException: The system cannot find the file specified.
+     at jcifs.smb.SmbTransport.checkStatus(SmbTransport.java:542)
+     at jcifs.smb.SmbTransport.send(SmbTransport.java:644)
+     at jcifs.smb.SmbSession.send(SmbSession.java:242)
+     at jcifs.smb.SmbTree.send(SmbTree.java:111)
+     at jcifs.smb.SmbFile.send(SmbFile.java:729)
+     at jcifs.smb.SmbFile.open0(SmbFile.java:934)
+     at jcifs.smb.SmbFile.open(SmbFile.java:951)
+     at jcifs.smb.SmbFileOutputStream.<init>(SmbFileOutputStream.java:142)
+     at jcifs.smb.TransactNamedPipeOutputStream.<init>(TransactNamedPipeOutputStream.java:32)
+     at jcifs.smb.SmbNamedPipe.getNamedPipeOutputStream(SmbNamedPipe.java:187)
+     at rpc.ncacn_np.RpcTransport.attach(RpcTransport.java:91)
+     at rpc.Stub.attach(Stub.java:105)
+     at rpc.Stub.call(Stub.java:109)
+     at org.jinterop.winreg.smb.JIWinRegStub.winreg_OpenHKCR(JIWinRegStub.java:119)
+     ... 10 more
+....
+```
+
+If so, start the control panel, open "Administrative Tools" then "Services" 
+Locate the Remote Registry service on the list, and click "Start this service"
+
+=== Enable Remote Registry Access on Windows 7 and above
+
+By default Windows 7 and above will still deny remote access to the registry, even if the Remote Registry service is started. 
+To test this, try to connect to your agent's registry via regedit on another machine.
+If you get a similar error ("Access is denied"), run powershell as an administrator on the agent, and execute Enable-PSRemoting. 
+Reboot for good measure, and try launching the agent again.
+
+== Windows security related issues
+
+=== Local Security Settings
+
+. Start the control panel, go to "Administrative Tools", then "Local
+Security Policy". This will open up the "local security settings" window
+. Go to "Local Policies" > "Security Options" > "Network access: Sharing
+and security model for local accounts." Change that to "Classic."
+
+NOTE: This only applies to Windows computers that are not a part of a domain
+(http://technet.microsoft.com/en-us/library/cc786449(WS.10).aspx[reference])
+
+=== WBEM Scripting Locator
+
+On current Windows systems, Jenkins requires access to the "WBEM Scripting Locator". 
+The following steps allow that:
+
+. Launch 'regedit' (as Administrator)
+. Find (Ctrl+F) the following registry key:
+"\{76A64158-CB41-11D1-8B02-00600806D9B6}" (it's in
+HKEY_CLASSES_ROOT\CLSID)
+. Right click and select 'Permissions'
+. Change owner to administrators group (Advanced...).
+. Change permissions for administrators group. Grant Full Control.
+. Change owner back to TrustedInstaller (user is "NT
+Service\TrustedInstaller" on local machine)
+. Restart Remote Registry Service (Administrative Tools / Services)
+
+Credit to Florian Vogle http://wiki.hudson-ci.org/display/HUDSON/Windows+slaves+fail+to+start+via+DCOM[on
+the Hudson wiki].
+
+=== Access is denied error
+
+When you get an error like "Access is denied. [0x00000005]",
+apply the following patch to the registry:
+
+* HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+* create or modify 32-bit DWORD: LocalAccountTokenFilterPolicy
+* set the value to: 1
+
+Credit to Arturas Sirvinskas
+
+=== Remote Agent - Windows returned error code 0x8001ffff
+
+On Windows 2008 R2 (64bits), if you see a message like this:
+
+```
+....
+ERROR: Message not found for errorCode: 0x8001FFFF
+org.jinterop.dcom.common.JIException: Message not found for errorCode: 0x8001FFFF
+ at org.jinterop.dcom.core.JIComServer.init(JIComServer.java:546)
+ at org.jinterop.dcom.core.JIComServer.initialise(JIComServer.java:458)
+ at org.jinterop.dcom.core.JIComServer.<init>(JIComServer.java:427)
+ at org.jvnet.hudson.wmi.WMI.connect(WMI.java:59)
+ at hudson.os.windows.ManagedWindowsServiceLauncher.launch(ManagedWindowsServiceLauncher.java:218)
+ at org.jenkinsci.plugins.vSphereCloudLauncher.launch(vSphereCloudLauncher.java:198)
+ at hudson.slaves.SlaveComputer$1.call(SlaveComputer.java:204)
+ at java.util.concurrent.FutureTask$Sync.innerRun(Unknown Source)
+ at java.util.concurrent.FutureTask.run(Unknown Source)
+ at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(Unknown Source)
+ at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+ at java.lang.Thread.run(Unknown Source)
+Caused by: java.net.SocketTimeoutException
+ at sun.nio.ch.SocketAdaptor$SocketInputStream.read(Unknown Source)
+ at sun.nio.ch.ChannelInputStream.read(Unknown Source)
+ at org.jinterop.dcom.transport.JIComTransport.receive(JIComTransport.java:146)
+ at rpc.DefaultConnection.receiveFragment(DefaultConnection.java:182)
+ at rpc.DefaultConnection.receive(DefaultConnection.java:68)
+ at rpc.ConnectionOrientedEndpoint.receive(ConnectionOrientedEndpoint.java:227)
+ at rpc.ConnectionOrientedEndpoint.bind(ConnectionOrientedEndpoint.java:181)
+ at rpc.ConnectionOrientedEndpoint.rebind(ConnectionOrientedEndpoint.java:153)
+ at org.jinterop.dcom.transport.JIComEndpoint.rebindEndPoint(JIComEndpoint.java:40)
+ at org.jinterop.dcom.core.JIComServer.init(JIComServer.java:535)
+ ... 11 more
+....
+```
+
+To resolve these issues, you may need to disable NTLMv2
+authentication.
+To turn off the NTLMv2 authentication:
+
+. Run regedit to edit the registry.
+. Locate the following registry key:
+HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa.
+. Locate the value named LMCompatibilityLevel, and change the DWORD
+value to 2 (send NTLM authentication only).
+. Close regedit and restart the machine.
+
+Taken from https://support.quest.com/SolutionDetail.aspx?id=SOL86281
+
+== Windows installation related issues
+
+=== Configuration of the agent if the Jenkins master  changed the address
+
+Make sure to check out logs of the starting service. 
+If you are changing configuration of the jenkins it is possible that the agent tries to connect to old masters address.
+To fix this:
+
+. on the agent: stop jenkins windows service (if not already dead)
+. on the master: go to Jenkins > Manage Jenkins > Configure System, and
+copy value from 'Jenkins URL' parameter
+. on the agent: edit jenkins-slave.xml and alter there service/arguments
+section to reflect new url of the server, copied in the previous step,
+save config
+. on the agent: start jenkins service and check logs if anything else fails.
+
+=== .NET Framework
+
+On Windows XP / 2003, if you see a message like this:
+
+```
+....
+Installing the Hudson slave service
+No more data is available. [0x00000103]
+org.jinterop.dcom.common.JIException: No more data is available. [0x00000103]
+    at org.jinterop.winreg.smb.JIWinRegStub.winreg_EnumKey(JIWinRegStub.java:390)
+    at hudson.util.jna.DotNet.isInstalled(DotNet.java:81)
+    at hudson.os.windows.ManagedWindowsServiceLauncher.launch(ManagedWindowsServiceLauncher.java:117)
+    at hudson.slaves.SlaveComputer$1.call(SlaveComputer.java:180)
+    at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:334)
+    at java.util.concurrent.FutureTask.run(FutureTask.java:166)
+    at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110)
+    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
+    at java.lang.Thread.run(Thread.java:636)
+Caused by: org.jinterop.dcom.common.JIRuntimeException: No more data is available. [0x00000103]
+    at org.jinterop.winreg.IJIWinReg$enumKey.read(IJIWinReg.java:762)
+    at ndr.NdrObject.decode(NdrObject.java:19)
+    at rpc.ConnectionOrientedEndpoint.call(ConnectionOrientedEndpoint.java:138)
+    at rpc.Stub.call(Stub.java:112)
+    at org.jinterop.winreg.smb.JIWinRegStub.winreg_EnumKey(JIWinRegStub.java:386)
+    ... 8 more
+....
+```
+
+
+Then try upgrading .NET framework to ver 3.5SP1.
+
+Taken from
+http://n4.nabble.com/exception-when-winxp-slaves-launch-No-more-data-is-available-0x00000103-td386006.html
+
+== Windows 64bit installation related issues
+
+See page comments below for various tips on using a Windows 64bit agent (Windows 7 or Server 2008.
+
+Make sure the Java bin directory is in your system path, e.g. \Program Files
+(x86)\Java\jre6\bin or \Windows\SYSWOW64
+
+WARNING: You must have the path to the JRE that is installed in \Windows\SYSWOW64.
+For example, when my system updated to Java 7 someone had to update the PATH to point at the new JRE or starting the agent just silently failed.
+
+If this bugs you, then
+upvote https://issues.jenkins-ci.org/browse/JENKINS-16061
+and https://issues.jenkins-ci.org/browse/JENKINS-14559
+
+=== Windows 2008 R2 (64bit)
+
+This is an attempt to describe what I had to do on a clean Windows 2008 R2 (64bit) install to get it to work:
+
+. Turned off the firewall (this could be configured correctly to be
+safer, but I didn't care since its in a firewalled "safe" part of the
+net)
+. Installed
+the http://www.microsoft.com/download/en/details.aspx?id=5582[Visual C++
+Redist]
+. Changed the permissions on the TrustedInstaller registry key (see
+above).
+. Added the Java "/bin" directory to "PATH"
+
+=== Windows Server 2012 (64bit)
+
+An error like
+"`+jcifs.util.transport.TransportException, java.net.SocketException: Connection reset+`" means
+the server is requiring SMB 2 protocol, which isn't currently supported
+(https://issues.jenkins-ci.org/browse/JENKINS-46255[JENKINS-46255]).
+
+Enable SMB1 on the server with the following PowerShell script:
+
+```powershell
+Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol
+Set-SmbServerConfiguration -EnableSMB1Protocol $true
+```
+
+To connect to Windows Server 2012+, change permission for following registry key to Full Control:
+
+-
+HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Wow6432Node\CLSID\{72C24DD5-D70A-438B-8A42-98424B88AFB8}
+
+- HKEY_CLASSES_ROOT\CLSID\{76A64158-CB41-11D1-8B02-00600806D9B6}
+
+. Launch 'regedit' (as Administrator)
+. Find (Ctrl+F) the following registry key:
+"\{72C24DD5-D70A-438B-8A42-98424B88AFB8}" in
+HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Wow6432Node\CLSID\
+. Right click and select 'Permissions'
+. Change owner to administrators group (Advanced...).
+. Change permissions for Administrators group. Grant Full Control.
+. Change owner back to TrustedInstaller (user is "NT
+Service\TrustedInstaller" on local machine)
+. Repeat the steps 1-6 for
+HKEY_CLASSES_ROOT\CLSID\{76A64158-CB41-11D1-8B02-00600806D9B6}
+. Restart Remote Registry Service (Administrative Tools / Services)
+
+Or via PowerShell like this:
+
+```powershell
+$user = [System.Security.Principal.NTAccount]"$env:userdomain\$env:username"
+$key = [Microsoft.Win32.Registry]::ClassesRoot.OpenSubKey(
+  "CLSID\{76A64158-CB41-11D1-8B02-00600806D9B6}", "ReadWriteSubTree", "TakeOwnership")
+$acl=$key.GetAccessControl()
+$acl.SetOwner($user)
+$key.SetAccessControl($acl)
+$rule = New-Object System.Security.AccessControl.RegistryAccessRule(
+    [System.Security.Principal.NTAccount]"Administrators",
+    "FullControl", "ContainerInherit", "None", "Allow")
+$acl.AddAccessRule($rule)
+$key.SetAccessControl($acl)
+
+```
+
+=== Windows Server 2016+
+
+In Windows Server 2016+, PowerShell needs to request the needed privileges first, that can be done with the script:
+
+```powershell
+function enable-privilege {
+ param(
+  [ValidateSet(
+   "SeAssignPrimaryTokenPrivilege", "SeAuditPrivilege", "SeBackupPrivilege",
+   "SeChangeNotifyPrivilege", "SeCreateGlobalPrivilege", "SeCreatePagefilePrivilege",
+   "SeCreatePermanentPrivilege", "SeCreateSymbolicLinkPrivilege", "SeCreateTokenPrivilege",
+   "SeDebugPrivilege", "SeEnableDelegationPrivilege", "SeImpersonatePrivilege", "SeIncreaseBasePriorityPrivilege",
+   "SeIncreaseQuotaPrivilege", "SeIncreaseWorkingSetPrivilege", "SeLoadDriverPrivilege",
+   "SeLockMemoryPrivilege", "SeMachineAccountPrivilege", "SeManageVolumePrivilege",
+   "SeProfileSingleProcessPrivilege", "SeRelabelPrivilege", "SeRemoteShutdownPrivilege",
+   "SeRestorePrivilege", "SeSecurityPrivilege", "SeShutdownPrivilege", "SeSyncAgentPrivilege",
+   "SeSystemEnvironmentPrivilege", "SeSystemProfilePrivilege", "SeSystemtimePrivilege",
+   "SeTakeOwnershipPrivilege", "SeTcbPrivilege", "SeTimeZonePrivilege", "SeTrustedCredManAccessPrivilege",
+   "SeUndockPrivilege", "SeUnsolicitedInputPrivilege")]
+  $Privilege, $ProcessId = $pid, [Switch] $Disable
+ )
+ $definition = @'
+ using System;
+ using System.Runtime.InteropServices;
+ public class AdjPriv
+ {
+  [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+  internal static extern bool AdjustTokenPrivileges(IntPtr htok, bool disall, ref TokPriv1Luid newst, int len, IntPtr prev, IntPtr relen);
+  [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+  internal static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr phtok);
+  [DllImport("advapi32.dll", SetLastError = true)]
+  internal static extern bool LookupPrivilegeValue(string host, string name, ref long pluid);
+  [StructLayout(LayoutKind.Sequential, Pack = 1)]
+  internal struct TokPriv1Luid {
+   public int Count;
+   public long Luid;
+   public int Attr;
+  }
+  public static bool EnablePrivilege(long processHandle, string privilege, bool disable) {
+   bool retVal;
+   IntPtr hproc = new IntPtr(processHandle);
+   IntPtr htok = IntPtr.Zero;
+   retVal = OpenProcessToken(hproc, 0x28, ref htok);
+   TokPriv1Luid tp;
+   tp.Count = 1;
+   tp.Luid = 0;
+   tp.Attr = disable ? 0 : 2;
+   retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
+   retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+   return retVal;
+  }
+ }
+'@
+ $processHandle = (Get-Process -id $ProcessId).Handle
+ $type = Add-Type $definition -PassThru
+ $type[0]::EnablePrivilege($processHandle, $Privilege, $Disable)
+}
+enable-privilege SeTakeOwnershipPrivilege
+enable-privilege SeRestorePrivilege
+```
+
+
+The user that is used for logging on also needs the permission "Log on as a service":
+
+. To open *Local Security Policy*, click *Start*, point to *Control Panel*, point to *Administrative Tools*, and then double-click *Local Security Policy*.
+. In the console tree, double-click *Local Policies*, and then click *User Rights Assignment*.
+. In the details pane, double-click *Log on as a service.*
+.  Click *Add User or Group*, and then add the appropriate account to the list of accounts that possess the *Log on as a service* right.
+
+See
+also https://technet.microsoft.com/en-us/library/cc794944(v=ws.10).aspx  .
+If the service is not starting (both from Jenkins or manually), check that you have the .NET Framework 3.5 SP1 installed.
+
+Follow these steps if you encounter errors during the installation of the Framework:
+https://stackoverflow.com/questions/14192244/offline-installer-for-net-3-5-sp1-not-working
+
+== If all else fails...
+
+Check the jenkins-slave.err file in the jenkins path on your intended agent. 
+This will typically give more information on the specific error being encountered when failing to launch the agent service.
+
+If you have KB2661256 installed, you can refer to
+https://issues.jenkins-ci.org/browse/JENKINS-15596[this issue].
+Please file an issue about the problem with the stack trace, with information like Windows versions, so that we can take a look.
+
+
