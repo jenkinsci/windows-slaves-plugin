@@ -1,0 +1,50 @@
+= Changelog
+
+=== 1.4 
+
+Release date: Dec 20, 2018
+
+* The plugin was renamed to "WMI Windows Agents Plugin" to reflect what
+it actually does
+* https://github.com/jenkinsci/windows-slaves-plugin/pull/9[PR #9] -
+escape the "-tcp" argument in the Windows service XML command 
+* https://issues.jenkins-ci.org/browse/JENKINS-42752[JENKINS-42752] -
+cleanup usages of the old "slave" term in the Web UI
+
+=== 1.3.1 
+
+Release date: Mar 14 2017
+
+This release solves the critical regression in Jenkins 2.50
+(https://issues.jenkins-ci.org/browse/JENKINS-42724[JENKINS-42724])
+
+* Make the plugin independent from the jenkins-slave.xml sample in the
+core [https://issues.jenkins-ci.org/browse/JENKINS-42746[JENKINS-42746]]
+
+Notes: 1.3 is burned, because it has been released from the wrong
+branch. The functionality of the artifact is actually the same.
+
+=== 1.2
+
+Release date: Aug 10 2016
+
+* Node startup log should contain a timestamp
+[https://issues.jenkins-ci.org/browse/JENKINS-25845[JENKINS-25845]]
+* Improve error message when slave host name is invalid
+[https://issues.jenkins-ci.org/browse/JENKINS-28895[JENKINS-28895]]
+* Use new plugin parent pom
+[https://issues.jenkins-ci.org/browse/JENKINS-34131[JENKINS-34131]]
+
+=== 1.1
+
+Release date: Jun 10 2015
+
+* Now on 1.554.3.
+* Restoring a lost help file.
+* German localization.
+
+=== 1.0 
+
+Release date: Jan 03 2013
+
+* Initial release

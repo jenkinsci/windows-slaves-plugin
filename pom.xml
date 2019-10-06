@@ -13,7 +13,7 @@
     <packaging>hpi</packaging>
     <name>WMI Windows Agents Plugin</name>
     <description>Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI)</description>
-    <url>https://wiki.jenkins.io/display/JENKINS/Windows+Slaves+Plugin</url>
+    <url>https://github.com/jenkinsci/windows-slaves-plugin</url>
 
     <licenses>
         <license>
