@@ -1,5 +1,9 @@
 = WMI Windows Agents Plugin for Jenkins 
 
+image:https://img.shields.io/jenkins/plugin/v/windows-slaves.svg[link="https://plugins.jenkins.io/windows-slaves"]
+image:https://img.shields.io/github/release/jenkinsci/windows-slaves-plugin.svg?label=changelog[link="https://github.com/jenkinsci/windows-slaves-plugin/releases/latest"]
+image:https://img.shields.io/jenkins/plugin/i/windows-slaves.svg?color=green[link="https://plugins.jenkins.io/windows-slaves"]
+
 Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI).
 
 == Usage
@@ -40,3 +44,8 @@ See link:docs/troubleshooting.adoc[Troubleshooting WMI Windows Agents].
 === Useful links
 
 * https://wiki.jenkins.io/display/JENKINS/Installing+Jenkins+as+a+Windows+service[Installing Jenkins as a Windows service]
+
+=== Changelog
+
+* See link:https://github.com/jenkinsci/windows-slaves-plugin/releases[GitHub Releases] for recent versions
+* See link:./CHANGELOG.adoc[this page] for previous releases
