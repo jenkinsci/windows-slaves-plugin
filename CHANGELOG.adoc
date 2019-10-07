@@ -1,4 +1,12 @@
-= Changelog
+= Changelog Archive
+
+image:https://img.shields.io/github/release/jenkinsci/windows-slaves-plugin.svg?label=changelog[link="https://github.com/jenkinsci/windows-slaves-plugin/releases/latest"]
+
+WARNING: Changelog was moved to link:https://github.com/jenkinsci/windows-slaves-plugin/releases[GitHub Releases].
+
+=== Newer versions
+
+See link:https://github.com/jenkinsci/windows-slaves-plugin/releases[GitHub Releases]
 
 === 1.4 
 
