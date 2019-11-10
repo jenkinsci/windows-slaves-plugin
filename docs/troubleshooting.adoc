@@ -1,4 +1,7 @@
 = Troubleshooting WMI Windows Agents
+:toc:
+:toc-placement: preamble
+:toclevels: 3
 
 NOTE: This is a guide which was migrated from Jenkins Wiki.
 Some guidelines might be obsolete and inapplicable to modern Windows versions.
