@@ -29,11 +29,11 @@ THE SOFTWARE.
   You can find more information about available options here: https://github.com/kohsuke/winsw/blob/master/doc/xmlConfigFile.md
   Configuration examples are available here: https://github.com/kohsuke/winsw/tree/master/examples
 
-  To uninstall, run "jenkins-slave.exe stop" to stop the service, then "jenkins-slave.exe uninstall" to uninstall the service.
+  To uninstall, run "jenkins-agent.exe stop" to stop the service, then "jenkins-agent.exe uninstall" to uninstall the service.
   Both commands don't produce any output if the execution is successful.
 -->
 <!--
-  TODO: this is a copy of the configuration file in Windows Agent Installer module 1.7 stored directly in windlows-slaves plugin
+  TODO: this is a copy of the configuration file in Windows Agent Installer module 1.7 stored directly in windlows-agents plugin
   As per JENKINS-42743, the agent should use the module's API
 -->
 <service>
@@ -45,7 +45,7 @@ THE SOFTWARE.
     The following value assumes that you have java in your PATH.
   -->
   <executable>@JAVA@</executable>
-  <arguments>-Xrs @VMARGS@ -jar "%BASE%\slave.jar" @ARGS@</arguments>
+  <arguments>-Xrs @VMARGS@ -jar "%BASE%\agent.jar" @ARGS@</arguments>
   <!--
     interactive flag causes the empty black Java window to be displayed.
     I'm still debugging this.
@@ -59,9 +59,9 @@ THE SOFTWARE.
     If uncommented, download the Remoting version provided by the Jenkins master.
     Enabling for HTTP implies security risks (e.g. replacement of JAR via DNS poisoning). Use on your own risk.
     NOTE: This option may fail to work correctly (e.g. if Jenkins is located behind HTTPS with untrusted certificate).
-    In such case the old agent version will be used; you can replace slave.jar manually or to specify another download URL.
+    In such case the old agent version will be used; you can replace agent.jar manually or to specify another download URL.
   -->
-  <!-- <download from=\"TODO:jarFile\" to=\"%BASE%\\slave.jar\"/> -->
+  <!-- <download from=\"TODO:jarFile\" to=\"%BASE%\\agent.jar\"/> -->
   
   <!-- 
     In the case WinSW gets terminated and leaks the process, we want to abort
