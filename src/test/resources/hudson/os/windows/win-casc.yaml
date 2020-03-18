@@ -1,0 +1,19 @@
+jenkins:
+  nodes:
+  - dumb:
+      labelString: "windows"
+      launcher:
+        managedWindowsServiceLauncher:
+          account:
+            anotherUser:
+              password: "{AQAAABAAAAAQwD4tWdHmw3SttK0GEtcYvCS6IpeDqPuOBRXOmizqJFo=}"
+              userName: "bob"
+          host: "forthewin"
+          javaPath: "C:\\Program Files\\Java\\jdk8\\bin\\javaw.exe"
+          password: "{AQAAABAAAAAQV9RHin9iLrfn9ypUgBAY5h4Ot4sk5jkmXGY8CA4p0rI=}"
+          userName: "alice"
+          vmargs: "-Xmx200"
+      name: "my-win"
+      numExecutors: 1
+      remoteFS: "C:/workspace"
+      retentionStrategy: "always"
