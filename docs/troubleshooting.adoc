@@ -66,18 +66,16 @@ following exceptions (see
 http://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers[List of
 TCP&UDP port numbers]):
 
-* TCP Port http://www.speedguide.net/port.php?port=135[135] (DCE/RPC
-Locator service)
-* TCP Port http://www.speedguide.net/port.php?port=139[139] (NetBIOS
-Session Service)
-* TCP Port http://www.speedguide.net/port.php?port=445[445] (Windows
-shares)
-
-* C:\WINDOWS\system32\dllhost.exe (dllhost.exe seems to use a random
-port number)
-* C:\WINDOWS\system32\javaw.exe (Jenkins also uses a random port number)
-* File and Printer sharing (TCP 139, TCP 445, UDP 137, UDP 138 (possibly
-only a subset of these is required))
+* COM+ Network Access (DCOM-In) TCP/135  (DCE/RPC Locator service)
+* COM+ Remote Administration (DCOM-In) TCP/RPC Dynamic Ports  (C:\WINDOWS\system32\dllhost.exe)
+* File and Printer Sharing (NB-Datagram-In) UDP/138
+* File and Printer Sharing (NB-Name-In) UDP/137
+* File and Printer Sharing (NB-Session-In) UDP/139  (NetBIOS Session Service)
+* File and Printer Sharing (SMB-In) UDP/445  (Windows shares)
+* Windows Management Instrumentation (DCOM-In) TCP/135
+* C:\WINDOWS\system32\javaw.exe (Jenkins also uses a random port number) OR
+* C:\Program Files (x86)\Common Files\Oracle\Java\javapath\javaw.exe 
+(New Java installers will add 'javapath' to Path environment variable)
 
 Example Firewall related issues:
 "`+Error 0x800706BA The RPC server is unavailable.+`",
