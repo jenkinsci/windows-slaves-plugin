@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright (c) 2004-2017, Sun Microsystems, Inc., Kohsuke Kawaguchi, Oleg Nenashev and other contributors
+Copyright (c) 2004-2020, Sun Microsystems, Inc., Kohsuke Kawaguchi, Oleg Nenashev and other contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -65,8 +65,7 @@ THE SOFTWARE.
   
   <!-- 
     In the case WinSW gets terminated and leaks the process, we want to abort
-    these runaway JAR processes on startup to prevent "Slave is already connected errors" (JENKINS-28492).
-    Will be enabled in WinSW 2.0 or higher
+    these runaway JAR processes on startup to prevent "Agent is already connected" errors (JENKINS-28492).
   -->
   <extensions>
     <!-- This is a sample configuration for the RunawayProcessKiller extension. -->
