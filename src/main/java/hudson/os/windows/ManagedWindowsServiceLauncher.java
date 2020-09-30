@@ -295,8 +295,6 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 // Ideally the resources from Windows Agent Installer Module should be used instead (JENKINS-42743)
                 copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe").openStream(), new SmbFile(remoteRoot, "jenkins-agent.exe").getOutputStream());
 
-                copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe.config").openStream(), new SmbFile(remoteRoot, "jenkins-agent.exe.config").getOutputStream());
-
                 copyAgentJar(logger, remoteRoot);
 
                 // copy jenkins-agent.xml

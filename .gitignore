@@ -12,6 +12,7 @@ out
 .settings
 .classpath
 .project
+.factorypath
 build
 
 # vim
