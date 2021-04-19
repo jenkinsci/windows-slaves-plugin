@@ -291,7 +291,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
 
                 // copy exe
                 logger.println(Messages.ManagedWindowsServiceLauncher_CopyingAgentExe(getTimestamp()));
-                //TODO: This executable in the core is designed for the master, not for the agents
+                //TODO: This executable in the core is designed for the controller, not for the agents
                 // Ideally the resources from Windows Agent Installer Module should be used instead (JENKINS-42743)
                 copyStreamAndClose(getClass().getResource("/windows-service/jenkins.exe").openStream(), new SmbFile(remoteRoot, "jenkins-agent.exe").getOutputStream());
 

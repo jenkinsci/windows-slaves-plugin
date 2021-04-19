@@ -84,7 +84,7 @@ Example Firewall related issues:
 
 The easiest way to track down firewall issues is to use
 http://www.tcpdump.org/[tcpdump]. Just run the following command on the
-Jenkins server, which is trying to connect to the slave:
+Jenkins server, which is trying to connect to the agent:
 
 *Linux/UNIX:*
 
@@ -95,7 +95,7 @@ a|
 tcpdump -n -i <IF> -s 1500 port not 22 and host <HOST-IP>
 
 <IF>       the network interface name, e.g. eth1
-<HOST-IP>  the IP address of the slave
+<HOST-IP>  the IP address of the agent
 ....
 
 |===
@@ -341,16 +341,16 @@ Taken from https://support.quest.com/SolutionDetail.aspx?id=SOL86281
 
 == Windows installation related issues
 
-=== Configuration of the agent if the Jenkins master  changed the address
+=== Configuration of the agent if the Jenkins controller  changed the address
 
 Make sure to check out logs of the starting service. 
-If you are changing configuration of the jenkins it is possible that the agent tries to connect to old masters address.
+If you are changing configuration of the jenkins it is possible that the agent tries to connect to old controllers address.
 To fix this:
 
 . on the agent: stop jenkins windows service (if not already dead)
-. on the master: go to Jenkins > Manage Jenkins > Configure System, and
+. on the controller: go to Jenkins > Manage Jenkins > Configure System, and
 copy value from 'Jenkins URL' parameter
-. on the agent: edit jenkins-slave.xml and alter there service/arguments
+. on the agent: edit jenkins-agent.xml and alter there service/arguments
 section to reflect new url of the server, copied in the previous step,
 save config
 . on the agent: start jenkins service and check logs if anything else fails.
