@@ -231,20 +231,7 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 proc.getInputStream().close();
                 int exitCode = proc.waitFor();
                 if (exitCode == 1) {// we'll get this error code if Java is not found
-                    logger.println("No Java found. Downloading JDK");
-                    JDKInstaller jdki = new JDKInstaller("jdk-6u16-oth-JPR@CDS-CDS_Developer", true);
-                    URL jdk = jdki.locate(listener, Platform.WINDOWS, CPU.i386);
-
-                    listener.getLogger().println("Installing JDK");
-                    copyStreamAndClose(jdk.openStream(), new SmbFile(remoteRoot, "jdk.exe").getOutputStream());
-
-                    String javaDir = path + "\\jdk"; // this is where we install Java to
-
-                    WindowsRemoteFileSystem fs = new WindowsRemoteFileSystem(name, createSmbAuth());
-                    fs.mkdirs(javaDir);
-
-                    jdki.install(new WindowsRemoteLauncher(listener, wrpl), Platform.WINDOWS,
-                            fs, listener, javaDir, path + "\\jdk.exe");
+                    throw new AbortException("No Java found. Aborting agent installation");
                 } else {
                     checkJavaVersion(logger, java, new BufferedReader(new StringReader(console.toString())));
                 }
