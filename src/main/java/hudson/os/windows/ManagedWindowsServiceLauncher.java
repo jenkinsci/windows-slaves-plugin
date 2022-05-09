@@ -37,9 +37,6 @@ import hudson.remoting.Channel;
 import hudson.remoting.Channel.Listener;
 import hudson.remoting.SocketChannelStream;
 import hudson.slaves.*;
-import hudson.tools.JDKInstaller;
-import hudson.tools.JDKInstaller.CPU;
-import hudson.tools.JDKInstaller.Platform;
 import hudson.util.DescribableList;
 import hudson.util.Secret;
 import hudson.util.jna.DotNet;
@@ -48,7 +45,6 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.logging.Level;
@@ -67,7 +63,6 @@ import org.dom4j.io.SAXReader;
 import org.jinterop.dcom.common.JIDefaultAuthInfoImpl;
 import org.jinterop.dcom.common.JIException;
 import org.jinterop.dcom.core.JISession;
-import org.jvnet.hudson.remcom.WindowsRemoteProcessLauncher;
 import org.jvnet.hudson.wmi.SWbemServices;
 import org.jvnet.hudson.wmi.WMI;
 import org.jvnet.hudson.wmi.Win32Service;
@@ -220,38 +215,6 @@ public class ManagedWindowsServiceLauncher extends ComputerLauncher {
                 remoteRoot.mkdirs();
 
             String java = resolveJava(computer);
-
-            try {// does Java exist?
-                logger.println("Checking if Java exists");
-                WindowsRemoteProcessLauncher wrpl = new WindowsRemoteProcessLauncher(name, auth);
-                Process proc = wrpl.launch("\"" + java + "\" -version", "c:\\");
-                proc.getOutputStream().close();
-                StringWriter console = new StringWriter();
-                IOUtils.copy(proc.getInputStream(), console);
-                proc.getInputStream().close();
-                int exitCode = proc.waitFor();
-                if (exitCode == 1) {// we'll get this error code if Java is not found
-                    logger.println("No Java found. Downloading JDK");
-                    JDKInstaller jdki = new JDKInstaller("jdk-6u16-oth-JPR@CDS-CDS_Developer", true);
-                    URL jdk = jdki.locate(listener, Platform.WINDOWS, CPU.i386);
-
-                    listener.getLogger().println("Installing JDK");
-                    copyStreamAndClose(jdk.openStream(), new SmbFile(remoteRoot, "jdk.exe").getOutputStream());
-
-                    String javaDir = path + "\\jdk"; // this is where we install Java to
-
-                    WindowsRemoteFileSystem fs = new WindowsRemoteFileSystem(name, createSmbAuth());
-                    fs.mkdirs(javaDir);
-
-                    jdki.install(new WindowsRemoteLauncher(listener, wrpl), Platform.WINDOWS,
-                            fs, listener, javaDir, path + "\\jdk.exe");
-                } else {
-                    checkJavaVersion(logger, java, new BufferedReader(new StringReader(console.toString())));
-                }
-            } catch (Exception e) {
-                e.printStackTrace(listener.error("Failed to prepare Java"));
-                return;
-            }
 
 // this just doesn't work --- trying to obtain the type or check the existence of smb://server/C$/ results in "access denied"
 //            {// check if the administrative share exists
