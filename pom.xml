@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>windows-slaves</artifactId>
-    <version>1.9-SNAPSHOT</version>
+    <version>1.8.1</version>
     <packaging>hpi</packaging>
     <name>WMI Windows Agents Plugin</name>
     <description>Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI)</description>
@@ -37,7 +37,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-        <tag>HEAD</tag>
+        <tag>windows-slaves-1.8.1</tag>
     </scm>
 
     <properties>
