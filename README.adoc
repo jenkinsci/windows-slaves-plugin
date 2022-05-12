@@ -8,7 +8,8 @@ Allows you to setup agents on Windows machines over Windows Management Instrumen
 
 == NOTICE OF DEPRECATION (May 2023) ==
 
-This plugin will be deprecated in May of 2023. SSH is now a very viable, secure and robust solution for connecting to Windows based agents using native Windows binaries for https://github.com/PowerShell/openssh-portable[OpenSSH Server] or another method such as https://www.cygwin.com/[cygwin]. There is also the https://plugins.jenkins.io/windows-cloud/[Windows Cloud plugin] for Jenkins which uses WinRM, a more modern remote management solution. 
+This plugin will be deprecated in May of 2023. SSH is now a very viable, secure and robust solution for connecting to Windows based agents using native Windows binaries for https://github.com/PowerShell/openssh-portable[OpenSSH Server] or another method such as https://www.cygwin.com/[cygwin].
+There is also the https://plugins.jenkins.io/windows-cloud/[Windows Cloud plugin] for Jenkins which uses WinRM, a more modern remote management solution. 
 
 The method for connecting agents to the controller in this plugin, which is based on DCOM, has several pitfalls and issues and can be brittle. The SSH and other solutions can unify the method for connecting to all agents (Windows, Linux, macOS, etc.) in your infrastructure. It is highly recommended that you migrate to one of these other methods soone rather than later.
 
