@@ -6,6 +6,16 @@ image:https://img.shields.io/jenkins/plugin/i/windows-slaves.svg?color=green[lin
 
 Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI).
 
+== NOTICE OF DEPRECATION (May 2023) ==
+
+This plugin will be deprecated in May of 2023. SSH is now a very viable, secure and robust solution for connecting to Windows based agents using native Windows binaries for https://github.com/PowerShell/openssh-portable[OpenSSH Server] or another method such as https://www.cygwin.com/[cygwin]. There is also the https://plugins.jenkins.io/windows-cloud/[Windows Cloud plugin] for Jenkins with uses WinRM, a more modern remote management solution. 
+
+The method for connecting agents to the controller in this plugin, which is based on DCOM, has several pitfalls and issues and can be brittle. The SSH and other solutions can unify the method for connecting to all agents (Windows, Linux, macOS, etc.) in your infrastructure. It is highly recommended that you migrate to one of these other methods soone rather than later.
+
+Mirosoft is tightening security on DCOM based on a https://support.microsoft.com/en-us/topic/kb5004442-manage-changes-for-windows-dcom-server-security-feature-bypass-cve-2021-26414-f1400b52-c141-43d2-941e-37ed901c769c[CVE]. Initial OS updates will require a registry change to enable the current security level, then in May of 2023 they will not have a way to override the secure behavior. The library used in this plugin was last released in ~2010 and does not have an active development team. Jenkins developers have decided to deprecate this plugin rather than try and upkeep the library on our own, which requires a significant understanding of the underlying DCOM technologies.
+
+If someone would like to keep the plugin going, they would need to adopt the plugin and update it to align with the changes that Microsoft is putting in to resolve the CVE.
+
 == Usage
 
 Once the plugin is installed, a new launch type is available in the agent configuration.
