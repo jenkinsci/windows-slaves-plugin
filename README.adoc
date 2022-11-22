@@ -60,4 +60,4 @@ See link:docs/troubleshooting.adoc[Troubleshooting WMI Windows Agents].
 === Changelog
 
 * See link:https://github.com/jenkinsci/windows-slaves-plugin/releases[GitHub Releases] for recent versions
-* See link:./CHANGELOG.adoc[this page] for previous releases
+* See the link:https://github.com/jenkinsci/windows-slaves-plugin/blob/windows-slaves-1.5/CHANGELOG.adoc[historical changelog] for releases before 1.5
