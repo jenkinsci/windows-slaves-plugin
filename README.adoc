@@ -1,15 +1,11 @@
-= WMI Windows Agents Plugin for Jenkins 
-
-image:https://img.shields.io/jenkins/plugin/v/windows-slaves.svg[link="https://plugins.jenkins.io/windows-slaves"]
-image:https://img.shields.io/github/release/jenkinsci/windows-slaves-plugin.svg?label=changelog[link="https://github.com/jenkinsci/windows-slaves-plugin/releases/latest"]
-image:https://img.shields.io/jenkins/plugin/i/windows-slaves.svg?color=green[link="https://plugins.jenkins.io/windows-slaves"]
+= WMI Windows Agents Plugin for Jenkins
 
 Allows you to setup agents on Windows machines over Windows Management Instrumentation (WMI).
 
-== NOTICE OF DEPRECATION (May 2023) ==
+== NOTICE OF DEPRECATION ==
 
-This plugin will be deprecated in May of 2023. SSH is now a very viable, secure and robust solution for connecting to Windows based agents using native Windows binaries for https://github.com/PowerShell/openssh-portable[OpenSSH Server] or another method such as https://www.cygwin.com/[cygwin].
-There is also the https://plugins.jenkins.io/windows-cloud/[Windows Cloud plugin] for Jenkins which uses WinRM, a more modern remote management solution. 
+This plugin is deprecated. SSH is now a very viable, secure and robust solution for connecting to Windows based agents using native Windows binaries for https://github.com/PowerShell/openssh-portable[OpenSSH Server] or another method such as https://www.cygwin.com/[cygwin].
+There is also the https://plugins.jenkins.io/windows-cloud/[Windows Cloud plugin] for Jenkins which uses WinRM, a more modern remote management solution.
 
 The method for connecting agents to the controller in this plugin, which is based on DCOM, has several pitfalls and issues and can be brittle.
 The SSH and other solutions can unify the method for connecting to all agents (Windows, Linux, macOS, etc.) in your infrastructure.
@@ -38,9 +34,8 @@ Jenkins uses multiple protocols to install the actual agent as a Windows service
 
 IMPORTANT: The installation process assumes that the JRE is installed and accessible on the agent. Please see link:docs/troubleshooting.adoc[Troubleshooting WMI Windows Agents] if you need further help.
 
-
 * It first uses http://en.wikipedia.org/wiki/Server_Message_Block[CIFS] (also known as "Windows file share protocol") to push files into the
-agent. 
+agent.
 When used by someone with administrative privileges, Windows file shares expose what's commonly known as "administrative shares",
 which are hidden exported directories that cover every drive in the system.
 * It then uses
@@ -60,4 +55,4 @@ See link:docs/troubleshooting.adoc[Troubleshooting WMI Windows Agents].
 === Changelog
 
 * See link:https://github.com/jenkinsci/windows-slaves-plugin/releases[GitHub Releases] for recent versions
-* See link:./CHANGELOG.adoc[this page] for previous releases
+* See the link:https://github.com/jenkinsci/windows-slaves-plugin/blob/windows-slaves-1.5/CHANGELOG.adoc[historical changelog] for releases before 1.5
