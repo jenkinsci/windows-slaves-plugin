@@ -12,7 +12,7 @@ The SSH and other solutions can unify the method for connecting to all agents (W
 It is highly recommended that you migrate to one of these other methods sooner rather than later.
 
 Microsoft is tightening security on DCOM based on a https://support.microsoft.com/en-us/topic/kb5004442-manage-changes-for-windows-dcom-server-security-feature-bypass-cve-2021-26414-f1400b52-c141-43d2-941e-37ed901c769c[CVE].
-Initial OS updates will require a registry change to enable the current security level, then in May of 2023 they will not have a way to override the secure behavior.
+Initial OS updates will require a registry change to enable the current security level, then on the 1th of March of 2023 they will not have a way to override the secure behavior.
 The library used in this plugin was last released in ~2010 and does not have an active development team.
 Jenkins developers have decided to deprecate this plugin rather than try and maintain the library on our own.
 
